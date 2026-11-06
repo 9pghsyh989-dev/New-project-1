@@ -89,12 +89,12 @@
                 <span>Recover Account</span>
                 <button onclick="closeForgotModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
             </h3>
-            <p class="text-xs text-slate-400">Default recovery master password hint: Contact developer Usman Qureshi (03463997211) or enter Master Code.</p>
+            <p class="text-xs text-slate-400">Enter Master Key Code to reset credentials to default (admin / 1234).</p>
             <div>
-                <label class="block text-xs text-slate-400 mb-1">Enter Master Pin / Key</label>
-                <input type="password" id="masterKeyInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm" placeholder="Master Pin">
+                <label class="block text-xs text-slate-400 mb-1">Enter Master Key (Grace@12)</label>
+                <input type="password" id="masterKeyInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm" placeholder="Grace@12">
             </div>
-            <button onclick="verifyMasterKey()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-medium">Reset to Default (admin / 1234)</button>
+            <button onclick="verifyMasterKey()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-medium">Verify & Reset Password</button>
         </div>
     </div>
 
@@ -165,9 +165,6 @@
             <button onclick="switchTab('tab-ledger')" id="btn-tab-ledger" class="tab-btn bg-slate-700 text-slate-300 hover:bg-slate-600 px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all">
                 <i class="fa-solid fa-book-journal-whills"></i> Total Party Ledger
             </button>
-            <button onclick="switchTab('tab-profit')" id="btn-tab-profit" class="tab-btn bg-slate-700 text-slate-300 hover:bg-slate-600 px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all">
-                <i class="fa-solid fa-chart-line"></i> Profit & Loss Summary
-            </button>
             <button onclick="switchTab('tab-excel')" id="btn-tab-excel" class="tab-btn bg-slate-700 text-slate-300 hover:bg-slate-600 px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all">
                 <i class="fa-solid fa-file-excel"></i> Excel Imports / Backup
             </button>
@@ -212,15 +209,9 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs text-slate-400 mb-1">Purchase Price (Cost)</label>
-                                <input type="number" id="itemCost" required min="0" step="0.01" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-slate-400 mb-1">Sale Price (PKR)</label>
-                                <input type="number" id="itemPrice" required min="0" step="0.01" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
-                            </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Unit Price (PKR/Rs)</label>
+                            <input type="number" id="itemPrice" required min="0" step="0.01" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 text-sm">
                         </div>
                         <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 rounded-lg transition-all shadow-md text-sm flex items-center justify-center gap-2">
                             <i class="fa-solid fa-save"></i> Save Item to Stock
@@ -244,8 +235,8 @@
                                     <th class="p-3">SKU</th>
                                     <th class="p-3">Item Name</th>
                                     <th class="p-3">Stock Qty</th>
-                                    <th class="p-3">Cost Price</th>
-                                    <th class="p-3">Sale Price</th>
+                                    <th class="p-3">Unit Price</th>
+                                    <th class="p-3">Total Value</th>
                                     <th class="p-3 text-center">Actions</th>
                                 </tr>
                             </thead>
@@ -388,25 +379,7 @@
             </div>
         </section>
 
-        <!-- BLOCK 5: PROFIT & LOSS SUMMARY -->
-        <section id="tab-profit" class="tab-content hidden space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl shadow">
-                    <p class="text-xs text-slate-400 font-semibold uppercase">Total Revenue (Sales)</p>
-                    <h3 id="totalRevenueDisplay" class="text-2xl font-bold text-emerald-400 mt-2">PKR 0.00</h3>
-                </div>
-                <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl shadow">
-                    <p class="text-xs text-slate-400 font-semibold uppercase">Total Cost of Goods</p>
-                    <h3 id="totalCostDisplay" class="text-2xl font-bold text-rose-400 mt-2">PKR 0.00</h3>
-                </div>
-                <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl shadow">
-                    <p class="text-xs text-slate-400 font-semibold uppercase">Net Estimated Profit</p>
-                    <h3 id="netProfitDisplay" class="text-2xl font-bold text-amber-400 mt-2">PKR 0.00</h3>
-                </div>
-            </div>
-        </section>
-
-        <!-- BLOCK 6: EXCEL IMPORTS FILE -->
+        <!-- BLOCK 5: EXCEL IMPORTS FILE -->
         <section id="tab-excel" class="tab-content hidden space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-lg">
@@ -656,8 +629,8 @@
         let db = {
             auth: JSON.parse(localStorage.getItem('anwar_auth')) || { user: 'admin', pass: '1234' },
             items: JSON.parse(localStorage.getItem('anwar_items')) || [
-                { sku: 'ITM-001', name: 'Sample Item A', qty: 100, unit: 'Pcs', cost: 200, price: 250 },
-                { sku: 'ITM-002', name: 'Sample Item B', qty: 50, unit: 'Box', cost: 1000, price: 1200 }
+                { sku: 'ITM-001', name: 'Sample Item A', qty: 100, unit: 'Pcs', price: 250 },
+                { sku: 'ITM-002', name: 'Sample Item B', qty: 50, unit: 'Box', price: 1200 }
             ],
             parties: JSON.parse(localStorage.getItem('anwar_parties')) || [
                 { name: 'Default Cash Party', phone: '03463997211', address: 'Local Store', balance: 0 }
@@ -668,23 +641,25 @@
         let tempBillItems = [];
         let currentViewingBill = null;
 
-        // Check Login Session
-        function checkLoginState() {
-            if (localStorage.getItem('anwar_logged_in') === 'true') {
-                document.getElementById('loginModal').classList.add('hidden');
-            }
-        }
-
+        // Force Login on Every Page Refresh (SessionStorage used instead of LocalStorage for login state)
         function handleLogin(e) {
             e.preventDefault();
             const u = document.getElementById('loginUser').value.trim();
             const p = document.getElementById('loginPass').value.trim();
 
             if (u === db.auth.user && p === db.auth.pass) {
-                localStorage.setItem('anwar_logged_in', 'true');
+                sessionStorage.setItem('anwar_logged_in', 'true');
                 document.getElementById('loginModal').classList.add('hidden');
             } else {
                 alert('Invalid Username or Password! Default is admin / 1234');
+            }
+        }
+
+        function checkSessionLogin() {
+            if (sessionStorage.getItem('anwar_logged_in') === 'true') {
+                document.getElementById('loginModal').classList.add('hidden');
+            } else {
+                document.getElementById('loginModal').classList.remove('hidden');
             }
         }
 
@@ -696,13 +671,13 @@
         }
         function verifyMasterKey() {
             const key = document.getElementById('masterKeyInput').value.trim();
-            if (key === '03463997211' || key === 'admin123') {
+            if (key === 'Grace@12') {
                 db.auth = { user: 'admin', pass: '1234' };
                 localStorage.setItem('anwar_auth', JSON.stringify(db.auth));
-                alert('Credentials reset to default: admin / 1234');
+                alert('Credentials reset successfully! Default username: admin, password: 1234');
                 closeForgotModal();
             } else {
-                alert('Invalid Master Key! Contact Usman Qureshi (03463997211)');
+                alert('Invalid Master Key! (Required: Grace@12)');
             }
         }
 
@@ -749,8 +724,6 @@
             const activeBtn = document.getElementById('btn-' + tabId);
             activeBtn.classList.remove('bg-slate-700', 'text-slate-300');
             activeBtn.classList.add('bg-blue-600', 'text-white');
-
-            if(tabId === 'tab-profit') renderProfitLoss();
         }
 
         // Calculator
@@ -773,12 +746,11 @@
             const name = document.getElementById('itemName').value.trim();
             const qty = parseFloat(document.getElementById('itemQty').value) || 0;
             const unit = document.getElementById('itemUnit').value;
-            const cost = parseFloat(document.getElementById('itemCost').value) || 0;
             const price = parseFloat(document.getElementById('itemPrice').value) || 0;
 
             const idx = db.items.findIndex(i => i.sku.toLowerCase() === sku.toLowerCase());
-            if (idx > -1) db.items[idx] = { sku, name, qty, unit, cost, price };
-            else db.items.push({ sku, name, qty, unit, cost, price });
+            if (idx > -1) db.items[idx] = { sku, name, qty, unit, price };
+            else db.items.push({ sku, name, qty, unit, price });
 
             saveData();
             document.getElementById('addItemForm').reset();
@@ -796,8 +768,8 @@
                     <td class="p-3 font-mono text-xs text-blue-400">${item.sku}</td>
                     <td class="p-3 font-medium text-white">${item.name}</td>
                     <td class="p-3"><span class="bg-slate-900 px-2 py-1 rounded text-xs">${item.qty} ${item.unit}</span></td>
-                    <td class="p-3">PKR ${(item.cost || 0).toFixed(2)}</td>
                     <td class="p-3 text-emerald-400 font-semibold">PKR ${item.price.toFixed(2)}</td>
+                    <td class="p-3 text-emerald-400 font-semibold">PKR ${(item.qty * item.price).toFixed(2)}</td>
                     <td class="p-3 text-center">
                         <button onclick="deleteItem('${item.sku}')" class="bg-rose-600/30 text-rose-400 px-2 py-1 rounded text-xs"><i class="fa-solid fa-trash"></i></button>
                     </td>
@@ -870,7 +842,7 @@
             const price = parseFloat(document.getElementById('modalItemPrice').value) || 0;
             if(!sku || qty <= 0) return alert('Select item & qty');
             const item = db.items.find(i => i.sku === sku);
-            tempBillItems.push({ sku: item.sku, name: item.name, cost: item.cost || 0, qty, price, total: qty * price });
+            tempBillItems.push({ sku: item.sku, name: item.name, qty, price, total: qty * price });
             renderModalBillItems();
         }
 
@@ -967,20 +939,6 @@
             doc.save("Anwar_Ledger_Statement.pdf");
         }
 
-        // Profit & Loss Summary
-        function renderProfitLoss() {
-            let totalRev = 0, totalCost = 0;
-            db.bills.forEach(b => {
-                totalRev += b.grandTotal;
-                b.items.forEach(i => {
-                    totalCost += (i.cost || 0) * i.qty;
-                });
-            });
-            document.getElementById('totalRevenueDisplay').innerText = `PKR ${totalRev.toFixed(2)}`;
-            document.getElementById('totalCostDisplay').innerText = `PKR ${totalCost.toFixed(2)}`;
-            document.getElementById('netProfitDisplay').innerText = `PKR ${(totalRev - totalCost).toFixed(2)}`;
-        }
-
         // Excel Imports
         function processExcelImport(type) {
             const file = document.getElementById('excelFileInput').files[0];
@@ -997,7 +955,6 @@
                             name: String(row.ItemName || row.Name || 'Item'),
                             qty: parseFloat(row.Qty || row.Quantity) || 1,
                             unit: String(row.Unit || 'Pcs'),
-                            cost: parseFloat(row.Cost || 0),
                             price: parseFloat(row.Price || row.Rate) || 0
                         });
                     });
@@ -1027,7 +984,7 @@
             renderLedger();
         }
 
-        checkLoginState();
+        checkSessionLogin();
         renderAll();
     </script>
 </body>
