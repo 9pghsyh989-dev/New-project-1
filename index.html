@@ -21,38 +21,15 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between font-sans">
 
-    <!-- LOGIN SCREEN -->
-    <div id="loginSection" class="flex-grow flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-md">
-            <div class="text-center mb-6">
-                <h1 class="text-2xl font-bold text-white">Anwar Inventory</h1>
-                <p class="text-slate-400 text-xs mt-1">Secure Management Portal</p>
-            </div>
-            <form onsubmit="handleLogin(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Username</label>
-                    <input type="text" id="loginUser" required autocomplete="username" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Password</label>
-                    <input type="password" id="loginPass" required autocomplete="current-password" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500">
-                </div>
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-xl text-sm">Login</button>
-            </form>
-            <p class="text-center text-xs text-slate-500 mt-4">Default:
-        </div>
-    </div>
-
-    <!-- MAIN APP -->
-    <div id="mainApp" class="hidden flex-grow container mx-auto p-4 max-w-5xl">
+    <!-- MAIN APP (Directly visible now) -->
+    <div id="mainApp" class="flex-grow container mx-auto p-4 max-w-5xl">
         <header class="flex justify-between items-center mb-6 bg-slate-900 border border-slate-800 p-4 rounded-2xl">
             <div>
                 <h1 class="text-lg font-bold text-white">Anwar Inventory</h1>
                 <p class="text-xs text-slate-400">Dashboard</p>
             </div>
             <div class="flex gap-2">
-                <button onclick="openSettingsModal()" class="bg-slate-800 text-slate-200 px-3 py-2 rounded-xl text-xs">Settings</button>
-                <button onclick="handleLogout()" class="bg-red-500/10 text-red-400 px-3 py-2 rounded-xl text-xs">Logout</button>
+                <button onclick="switchTab('inventory')" class="bg-blue-600 text-white px-3 py-2 rounded-xl text-xs font-medium">Home</button>
             </div>
         </header>
 
@@ -212,23 +189,8 @@
         </div>
     </div>
 
-    <!-- PRINT SECTION CONTAINER (For Printing Bills) -->
+    <!-- PRINT SECTION CONTAINER -->
     <div id="printArea" class="hidden"></div>
-
-    <!-- SETTINGS MODAL -->
-    <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-sm">
-            <h3 class="text-sm font-bold text-white mb-3">Change Credentials</h3>
-            <form onsubmit="updateCreds(event)" class="space-y-3">
-                <input type="text" id="newU" placeholder="New Username" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                <input type="password" id="newP" placeholder="New Password" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                <div class="flex justify-end gap-2">
-                    <button type="button" onclick="closeSettingsModal()" class="bg-slate-800 text-slate-300 px-3 py-1.5 rounded-xl text-xs">Cancel</button>
-                    <button type="submit" class="bg-blue-600 text-white px-3 py-1.5 rounded-xl text-xs">Save</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <footer class="bg-slate-950 text-slate-400 text-center py-3 border-t border-slate-900 text-xs">
         Powered by <span class="font-semibold text-blue-400">Usman Qureshi</span> |
@@ -274,38 +236,6 @@
         const activeButton = document.getElementById(activeId);
         activeButton.classList.add('bg-blue-600', 'text-white');
         activeButton.classList.remove('text-slate-400');
-    }
-
-    function handleLogin(event) {
-        event.preventDefault();
-        const username = document.getElementById('loginUser').value.trim();
-        const password = document.getElementById('loginPass').value;
-        const savedUser = localStorage.getItem('appUser') || 'admin';
-        const savedPass = localStorage.getItem('appPass') || '1234';
-
-        if (username === savedUser && password === savedPass) {
-            localStorage.setItem('isLoggedIn', 'true');
-            initApp();
-        } else {
-            alert('Invalid username or password.');
-        }
-    }
-
-    function handleLogout() {
-        localStorage.removeItem('isLoggedIn');
-        location.reload();
-    }
-
-    function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); }
-    function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
-
-    function updateCreds(event) {
-        event.preventDefault();
-        localStorage.setItem('appUser', document.getElementById('newU').value.trim());
-        localStorage.setItem('appPass', document.getElementById('newP').value);
-        alert('Credentials updated.');
-        closeSettingsModal();
-        handleLogout();
     }
 
     // INVENTORY MANAGEMENT
@@ -598,7 +528,7 @@
                 let headerRowIndex = -1;
                 for (let r = 0; r < Math.min(matrix.length, 15); r++) {
                     const row = (matrix[r] || []).map(normalizeHeader);
-                    if (row.includes('itemname') || row.includes('item') || row.includes('unitrate') || row.includes('unitrateks') || row.includes('totalrs') || row.includes('total')) {
+                    if (row.includes('itemname') || row.includes('item') || row.includes('unitrate') || row.includes('totalrs') || row.includes('total')) {
                         headerRowIndex = r;
                         break;
                     }
@@ -647,7 +577,7 @@
 
                 showExcelStatus(`Sheet successfully imported! Total ${excelImportedRows.length} items parsed.`, 'success');
             } catch (err) {
-                showExcelStatus(err.message || 'Excel file read nahi saki.', 'error');
+                showExcelStatus(err.message || 'Excel file read nahi ho saki.', 'error');
             }
         };
         reader.readAsArrayBuffer(file);
@@ -771,4 +701,32 @@
                         ${tempBill.items.map((item, idx) => `
                             <tr>
                                 <td style="border:1px solid #ccc; padding:8px;">${idx+1}</td>
-                                <td style="border:1
+                                <td style="border:1px solid #ccc; padding:8px;">${escapeHTML(item.date || '-')}</td>
+                                <td style="border:1px solid #ccc; padding:8px;">${escapeHTML(item.item || '-')}</td>
+                                <td style="border:1px solid #ccc; padding:8px;">${escapeHTML(item.qty || '-')}</td>
+                                <td style="border:1px solid #ccc; padding:8px;">${escapeHTML(item.rate || '-')}</td>
+                                <td style="border:1px solid #ccc; padding:8px; text-align:right;">Rs. ${escapeHTML(item.amount || '0')}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <div style="text-align: right; font-size: 16px; font-weight: bold;">
+                    Grand Total: Rs. ${Number(total).toLocaleString('en-PK')}
+                </div>
+            </div>
+        `;
+        printArea.classList.remove('hidden');
+        window.print();
+        printArea.classList.add('hidden');
+    }
+
+    // Initialize application on load
+    window.addEventListener('load', () => {
+        loadInv();
+        loadParties();
+        loadBills();
+        if (window.lucide) lucide.createIcons();
+    });
+</script>
+</body>
+</html>
