@@ -58,7 +58,7 @@
                     <i class="fa-solid fa-lock"></i>
                 </div>
                 <h2 class="text-xl font-bold text-white">Anwar Inventory Login</h2>
-                <p class="text-xs text-slate-400 mt-1">Default: admin / 1234</p>
+                <p class="text-xs text-slate-400 mt-1">Username: admin | Password: 1234</p>
             </div>
 
             <form onsubmit="handleLogin(event)" class="space-y-4">
@@ -75,9 +75,8 @@
                 </button>
             </form>
 
-            <div class="text-center pt-2 border-t border-slate-700 flex justify-between text-xs">
-                <button onclick="openForgotPasswordModal()" class="text-blue-400 hover:underline">Forgot Password?</button>
-                <button onclick="openSettingsModal()" class="text-slate-400 hover:underline">Change Credentials</button>
+            <div class="text-center pt-2 border-t border-slate-700">
+                <button onclick="openForgotPasswordModal()" class="text-blue-400 hover:underline text-xs">Forgot Password?</button>
             </div>
         </div>
     </div>
@@ -95,27 +94,6 @@
                 <input type="password" id="masterKeyInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm" placeholder="Grace@12">
             </div>
             <button onclick="verifyMasterKey()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-medium">Verify & Reset Password</button>
-        </div>
-    </div>
-
-    <!-- SETTINGS / CHANGE CREDENTIALS MODAL -->
-    <div id="settingsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-sm shadow-2xl space-y-4">
-            <h3 class="text-lg font-bold text-white flex items-center justify-between">
-                <span>Change Username & Password</span>
-                <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
-            </h3>
-            <form onsubmit="saveNewCredentials(event)" class="space-y-3">
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">New Username</label>
-                    <input type="text" id="newUsername" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">New Password</label>
-                    <input type="password" id="newPassword" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
-                </div>
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 rounded-lg text-sm">Save Credentials</button>
-            </form>
         </div>
     </div>
 
@@ -138,9 +116,6 @@
             <div class="flex items-center gap-3">
                 <button onclick="openCalculatorModal()" class="bg-slate-700 hover:bg-slate-600 text-amber-400 px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 transition-all">
                     <i class="fa-solid fa-calculator text-sm"></i> Calculator
-                </button>
-                <button onclick="openSettingsModal()" class="bg-slate-700 hover:bg-slate-600 text-indigo-300 px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 transition-all">
-                    <i class="fa-solid fa-user-gear text-sm"></i> Settings
                 </button>
                 <div class="bg-slate-900/80 border border-slate-700 px-4 py-2 rounded-lg text-right min-w-[200px]">
                     <div id="liveClock" class="text-xl font-mono font-semibold text-emerald-400">00:00:00 AM</div>
@@ -627,7 +602,6 @@
     <!-- JAVASCRIPT LOGIC -->
     <script>
         let db = {
-            auth: JSON.parse(localStorage.getItem('anwar_auth')) || { user: 'admin', pass: '1234' },
             items: JSON.parse(localStorage.getItem('anwar_items')) || [
                 { sku: 'ITM-001', name: 'Sample Item A', qty: 100, unit: 'Pcs', price: 250 },
                 { sku: 'ITM-002', name: 'Sample Item B', qty: 50, unit: 'Box', price: 1200 }
@@ -641,17 +615,17 @@
         let tempBillItems = [];
         let currentViewingBill = null;
 
-        // Force Login on Every Page Refresh (SessionStorage used instead of LocalStorage for login state)
+        // Force Login on Every Page Refresh (SessionStorage used)
         function handleLogin(e) {
             e.preventDefault();
             const u = document.getElementById('loginUser').value.trim();
             const p = document.getElementById('loginPass').value.trim();
 
-            if (u === db.auth.user && p === db.auth.pass) {
+            if (u === 'admin' && p === '1234') {
                 sessionStorage.setItem('anwar_logged_in', 'true');
                 document.getElementById('loginModal').classList.add('hidden');
             } else {
-                alert('Invalid Username or Password! Default is admin / 1234');
+                alert('Invalid Username or Password! (admin / 1234)');
             }
         }
 
@@ -672,30 +646,11 @@
         function verifyMasterKey() {
             const key = document.getElementById('masterKeyInput').value.trim();
             if (key === 'Grace@12') {
-                db.auth = { user: 'admin', pass: '1234' };
-                localStorage.setItem('anwar_auth', JSON.stringify(db.auth));
-                alert('Credentials reset successfully! Default username: admin, password: 1234');
+                alert('Master Key verified! Default username is: admin, password is: 1234');
                 closeForgotModal();
             } else {
                 alert('Invalid Master Key! (Required: Grace@12)');
             }
-        }
-
-        function openSettingsModal() {
-            document.getElementById('newUsername').value = db.auth.user;
-            document.getElementById('newPassword').value = db.auth.pass;
-            document.getElementById('settingsModal').classList.remove('hidden');
-        }
-        function closeSettingsModal() {
-            document.getElementById('settingsModal').classList.add('hidden');
-        }
-        function saveNewCredentials(e) {
-            e.preventDefault();
-            db.auth.user = document.getElementById('newUsername').value.trim();
-            db.auth.pass = document.getElementById('newPassword').value.trim();
-            localStorage.setItem('anwar_auth', JSON.stringify(db.auth));
-            alert('Credentials updated successfully!');
-            closeSettingsModal();
         }
 
         function saveData() {
