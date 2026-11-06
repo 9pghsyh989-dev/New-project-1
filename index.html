@@ -10,6 +10,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        @media print {
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { position: absolute; left: 0; top: 0; width: 100%; color: #000; background: #fff; padding: 20px; }
+            .no-print { display: none !important; }
+        }
+    </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between font-sans">
 
@@ -53,7 +61,7 @@
             <button onclick="switchTab('inventory')" id="btnInv" class="px-4 py-2 rounded-xl text-xs bg-blue-600 text-white font-medium whitespace-nowrap">Inventory</button>
             <button onclick="switchTab('parties')" id="btnParty" class="px-4 py-2 rounded-xl text-xs text-slate-400 font-medium whitespace-nowrap">Party Ledger</button>
             <button onclick="switchTab('bills')" id="btnBill" class="px-4 py-2 rounded-xl text-xs text-slate-400 font-medium whitespace-nowrap">Bills</button>
-            <button onclick="switchTab('ocr')" id="btnOcr" class="px-4 py-2 rounded-xl text-xs text-slate-400 font-medium whitespace-nowrap">OCR Scanner</button>
+            <button onclick="switchTab('ocr')" id="btnOcr" class="px-4 py-2 rounded-xl text-xs text-slate-400 font-medium whitespace-nowrap">Excel Import</button>
         </div>
 
         <!-- INVENTORY -->
@@ -64,7 +72,7 @@
                     <input type="hidden" id="invId">
                     <input type="text" id="invName" placeholder="Item Name" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
                     <div class="grid grid-cols-2 gap-2">
-                        <input type="number" id="invQty" min="0" step="any" placeholder="Quantity" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                        <input type="text" id="invQty" placeholder="Quantity (e.g. 1 Drum)" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
                         <input type="number" id="invPrice" min="0" step="any" placeholder="Price (Rs.)" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
                     </div>
                     <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-xl text-xs">Save Item</button>
@@ -111,7 +119,7 @@
                 <form onsubmit="saveBill(event)" class="space-y-3">
                     <input type="hidden" id="billId">
                     <input type="text" id="billCust" placeholder="Customer / Shop Name" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                    <input type="text" id="billDet" placeholder="Items Summary" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                    <input type="text" id="billDet" placeholder="Items Details / Summary" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
                     <input type="number" id="billTot" min="0" step="any" placeholder="Total Amount (Rs.)" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
                     <button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded-xl text-xs">Save Bill</button>
                 </form>
@@ -129,63 +137,60 @@
 
         <!-- EXCEL BILL IMPORT -->
         <div id="tab-ocr" class="hidden space-y-4">
-            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl max-w-3xl mx-auto">
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl max-w-4xl mx-auto">
                 <div class="flex items-center gap-3 mb-2">
                     <div class="bg-emerald-500/15 text-emerald-400 rounded-xl p-3">
                         <i data-lucide="file-spreadsheet" class="w-7 h-7"></i>
                     </div>
                     <div>
-                        <h2 class="text-lg font-bold text-white">Excel Bill Import</h2>
-                        <p class="text-xs text-slate-400">Image scanner removed — ab Excel sheet upload karein.</p>
+                        <h2 class="text-lg font-bold text-white">Excel Sheet Importer</h2>
+                        <p class="text-xs text-slate-400">Date, Item, Qty, Unit Rate aur Total Amount complete read karein.</p>
                     </div>
                 </div>
 
                 <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 mt-4">
-                    <label class="block text-xs font-semibold text-slate-300 mb-2">Select Excel / CSV file</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-2">Select Excel / CSV File</label>
                     <input id="excelFile" type="file" accept=".xlsx,.xls,.csv,.ods" onchange="readExcelBill(event)"
                         class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-slate-200">
-                    <p class="text-[11px] text-slate-500 mt-2">Supported: .xlsx, .xls, .csv. First row mein headings hon to behtar hai: Item, Qty, Rate, Amount.</p>
-                    <a href="#" onclick="downloadExcelTemplate(event)" class="inline-flex items-center gap-2 text-emerald-400 text-xs mt-3 hover:underline">
-                        <i data-lucide="download" class="w-4 h-4"></i> Download sample Excel template
-                    </a>
                 </div>
 
                 <div id="excelStatus" class="hidden mt-4 rounded-xl p-3 text-xs"></div>
 
                 <div id="excelBillFields" class="hidden mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Customer / Supplier name</label>
+                        <label class="block text-xs text-slate-400 mb-1">Customer / Supplier Name</label>
                         <input id="excelCustomer" type="text" placeholder="Customer or supplier"
                             class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white">
                     </div>
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Bill date</label>
-                        <input id="excelDate" type="text" placeholder="Bill date"
+                        <label class="block text-xs text-slate-400 mb-1">Bill Date</label>
+                        <input id="excelDate" type="text" placeholder="Bill Date"
                             class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white">
                     </div>
                 </div>
 
                 <div id="excelPreviewWrap" class="hidden mt-4 bg-slate-950 border border-slate-800 rounded-xl p-3">
                     <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
-                        <h3 class="text-sm font-bold text-emerald-400">Imported sheet preview</h3>
+                        <h3 class="text-sm font-bold text-emerald-400">Imported Data Preview (Editable)</h3>
                         <span id="excelRowCount" class="text-[11px] text-slate-400"></span>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="w-full min-w-[560px] text-left text-xs text-slate-200">
+                        <table class="w-full min-w-[650px] text-left text-xs text-slate-200">
                             <thead class="bg-slate-900 text-slate-400">
                                 <tr>
-                                    <th class="p-2">Item / Description</th>
+                                    <th class="p-2">Date</th>
+                                    <th class="p-2">Item Name</th>
                                     <th class="p-2">Qty</th>
-                                    <th class="p-2">Rate</th>
-                                    <th class="p-2">Amount</th>
-                                    <th class="p-2">Action</th>
+                                    <th class="p-2">Unit Rate</th>
+                                    <th class="p-2">Total (Rs)</th>
+                                    <th class="p-2 text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody id="excelPreviewBody" class="divide-y divide-slate-800"></tbody>
                         </table>
                     </div>
                     <div class="flex flex-wrap justify-between items-center gap-3 mt-4">
-                        <button type="button" onclick="addExcelItemRow()" class="bg-slate-700 text-white px-3 py-2 rounded-lg text-xs">+ Add row</button>
+                        <button type="button" onclick="addExcelItemRow()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-xs">+ Add Row</button>
                         <div class="text-right">
                             <p class="text-xs text-slate-400">Grand Total</p>
                             <p class="text-xl font-bold text-emerald-400">Rs. <span id="excelGrandTotal">0.00</span></p>
@@ -193,14 +198,22 @@
                     </div>
                 </div>
 
-                <button id="saveExcelBillBtn" type="button" onclick="saveExcelBill()" disabled
-                    class="w-full mt-4 bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold text-sm">
-                    Save Imported Bill
-                </button>
-                <p class="text-[10px] text-amber-300 mt-3">Import hone ke baad rows aur amounts check karein. Excel data aapke browser ke andar read hota hai; save karne par bill isi device ki local storage mein save hoga.</p>
+                <div class="flex gap-2 mt-4">
+                    <button id="saveExcelBillBtn" type="button" onclick="saveExcelBill()" disabled
+                        class="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold text-sm">
+                        Save Imported Bill
+                    </button>
+                    <button id="printExcelBillBtn" type="button" onclick="printCurrentExcel()" disabled
+                        class="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-semibold text-sm flex items-center gap-1">
+                        <i data-lucide="printer" class="w-4 h-4"></i> Print Preview
+                    </button>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- PRINT SECTION CONTAINER (For Printing Bills) -->
+    <div id="printArea" class="hidden"></div>
 
     <!-- SETTINGS MODAL -->
     <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4">
@@ -223,13 +236,11 @@
     </footer>
 
 <script>
-    // ---------- SAFE LOCAL STORAGE ----------
     function getStore(key) {
         try {
             const value = JSON.parse(localStorage.getItem(key) || '[]');
             return Array.isArray(value) ? value : [];
         } catch (error) {
-            console.error('Storage read error:', error);
             return [];
         }
     }
@@ -238,24 +249,20 @@
         try {
             localStorage.setItem(key, JSON.stringify(data));
         } catch (error) {
-            alert('Storage full or unavailable. Please export/backup your data.');
-            console.error(error);
+            alert('Storage full or unavailable.');
         }
     }
 
-    // Escape user-entered text before placing it in HTML tables.
     function escapeHTML(value) {
         return String(value ?? '').replace(/[&<>"']/g, char => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
         })[char]);
     }
 
-    // ---------- NAVIGATION ----------
     function switchTab(tab) {
         ['inventory', 'parties', 'bills', 'ocr'].forEach(key => {
             document.getElementById(`tab-${key}`).classList.add('hidden');
         });
-
         ['btnInv', 'btnParty', 'btnBill', 'btnOcr'].forEach(id => {
             const button = document.getElementById(id);
             button.classList.remove('bg-blue-600', 'text-white');
@@ -263,20 +270,12 @@
         });
 
         document.getElementById(`tab-${tab}`).classList.remove('hidden');
-
-        const activeId = {
-            inventory: 'btnInv',
-            parties: 'btnParty',
-            bills: 'btnBill',
-            ocr: 'btnOcr'
-        }[tab];
-
+        const activeId = { inventory: 'btnInv', parties: 'btnParty', bills: 'btnBill', ocr: 'btnOcr' }[tab];
         const activeButton = document.getElementById(activeId);
         activeButton.classList.add('bg-blue-600', 'text-white');
         activeButton.classList.remove('text-slate-400');
     }
 
-    // ---------- LOGIN ----------
     function handleLogin(event) {
         event.preventDefault();
         const username = document.getElementById('loginUser').value.trim();
@@ -297,24 +296,19 @@
         location.reload();
     }
 
-    function openSettingsModal() {
-        document.getElementById('settingsModal').classList.remove('hidden');
-    }
-
-    function closeSettingsModal() {
-        document.getElementById('settingsModal').classList.add('hidden');
-    }
+    function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); }
+    function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
 
     function updateCreds(event) {
         event.preventDefault();
         localStorage.setItem('appUser', document.getElementById('newU').value.trim());
         localStorage.setItem('appPass', document.getElementById('newP').value);
-        alert('Credentials updated. Please log in with the new details.');
+        alert('Credentials updated.');
         closeSettingsModal();
         handleLogout();
     }
 
-    // ---------- INVENTORY ----------
+    // INVENTORY MANAGEMENT
     function saveInv(event) {
         event.preventDefault();
         const id = document.getElementById('invId').value;
@@ -345,7 +339,7 @@
     }
 
     function delInv(id) {
-        if (!confirm('Delete this inventory item?')) return;
+        if (!confirm('Delete this item?')) return;
         setStore('inv', getStore('inv').filter(row => row.id != id));
         loadInv();
     }
@@ -361,7 +355,7 @@
             <tr class="hover:bg-slate-950/50">
                 <td class="p-2">${escapeHTML(item.name)}</td>
                 <td class="p-2">${escapeHTML(item.qty)}</td>
-                <td class="p-2">${escapeHTML(item.price)}</td>
+                <td class="p-2">Rs. ${escapeHTML(item.price)}</td>
                 <td class="p-2 text-right whitespace-nowrap">
                     <button onclick="editInv(${Number(item.id)})" class="text-blue-400 mr-2">Edit</button>
                     <button onclick="delInv(${Number(item.id)})" class="text-red-400">Del</button>
@@ -369,7 +363,7 @@
             </tr>`).join('');
     }
 
-    // ---------- PARTIES ----------
+    // PARTY LEDGER
     function saveParty(event) {
         event.preventDefault();
         const id = document.getElementById('partyId').value;
@@ -400,7 +394,7 @@
     }
 
     function delParty(id) {
-        if (!confirm('Delete this party?')) return;
+        if (!confirm('Delete party?')) return;
         setStore('parties', getStore('parties').filter(row => row.id != id));
         loadParties();
     }
@@ -416,7 +410,7 @@
             <tr class="hover:bg-slate-950/50">
                 <td class="p-2">${escapeHTML(party.name)}</td>
                 <td class="p-2">${escapeHTML(party.phone || '-')}</td>
-                <td class="p-2">${escapeHTML(party.balance)}</td>
+                <td class="p-2">Rs. ${escapeHTML(party.balance)}</td>
                 <td class="p-2 text-right whitespace-nowrap">
                     <button onclick="editParty(${Number(party.id)})" class="text-blue-400 mr-2">Edit</button>
                     <button onclick="delParty(${Number(party.id)})" class="text-red-400">Del</button>
@@ -424,7 +418,7 @@
             </tr>`).join('');
     }
 
-    // ---------- BILLS ----------
+    // BILLS & PRINTING
     function saveBill(event) {
         event.preventDefault();
         const id = document.getElementById('billId').value;
@@ -432,7 +426,8 @@
             id: id ? Number(id) : Date.now(),
             customer: document.getElementById('billCust').value.trim(),
             details: document.getElementById('billDet').value.trim(),
-            total: document.getElementById('billTot').value
+            total: document.getElementById('billTot').value,
+            date: new Date().toLocaleDateString()
         };
 
         let list = getStore('bills');
@@ -455,9 +450,78 @@
     }
 
     function delBill(id) {
-        if (!confirm('Delete this bill?')) return;
+        if (!confirm('Delete bill?')) return;
         setStore('bills', getStore('bills').filter(row => row.id != id));
         loadBills();
+    }
+
+    function printBill(id) {
+        const bill = getStore('bills').find(row => row.id == id);
+        if (!bill) return;
+
+        let itemsMarkup = '';
+        if (bill.items && Array.isArray(bill.items)) {
+            itemsMarkup = bill.items.map((item, idx) => `
+                <tr>
+                    <td style="border:1px solid #ccc; padding:8px;">${idx+1}</td>
+                    <td style="border:1px solid #ccc; padding:8px;">${escapeHTML(item.date || '-')}</td>
+                    <td style="border:1px solid #ccc; padding:8px;">${escapeHTML(item.item || '-')}</td>
+                    <td style="border:1px solid #ccc; padding:8px;">${escapeHTML(item.qty || '-')}</td>
+                    <td style="border:1px solid #ccc; padding:8px;">${escapeHTML(item.rate || '-')}</td>
+                    <td style="border:1px solid #ccc; padding:8px; text-align:right;">Rs. ${escapeHTML(item.amount || '0')}</td>
+                </tr>
+            `).join('');
+        } else {
+            itemsMarkup = `
+                <tr>
+                    <td style="border:1px solid #ccc; padding:8px;">1</td>
+                    <td style="border:1px solid #ccc; padding:8px;">-</td>
+                    <td style="border:1px solid #ccc; padding:8px;">${escapeHTML(bill.details)}</td>
+                    <td style="border:1px solid #ccc; padding:8px;">-</td>
+                    <td style="border:1px solid #ccc; padding:8px;">-</td>
+                    <td style="border:1px solid #ccc; padding:8px; text-align:right;">Rs. ${escapeHTML(bill.total)}</td>
+                </tr>`;
+        }
+
+        const printHTML = `
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; font-size: 24px; font-weight: bold;">ANWAR INVENTORY</h2>
+                    <p style="margin: 4px 0; font-size: 14px;">Sales Invoice / Bill Statement</p>
+                    <p style="margin: 4px 0; font-size: 12px; color: #555;">Contact: 03463997211</p>
+                </div>
+                <hr style="border: 0; border-top: 1px solid #888; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 14px;">
+                    <div><strong>Customer:</strong> ${escapeHTML(bill.customer)}</div>
+                    <div><strong>Date:</strong> ${bill.date || new Date().toLocaleDateString()}</div>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px;">
+                    <thead>
+                        <tr style="background-color: #f2f2f2;">
+                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">#</th>
+                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">Date</th>
+                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">Item Name</th>
+                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">Qty</th>
+                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">Unit Rate</th>
+                            <th style="border:1px solid #ccc; padding:8px; text-align:right;">Total (Rs)</th>
+                        </tr>
+                    </thead>
+                    <tbody>${itemsMarkup}</tbody>
+                </table>
+                <div style="text-align: right; font-size: 16px; font-weight: bold;">
+                    Grand Total: Rs. ${Number(bill.total).toLocaleString('en-PK')}
+                </div>
+                <div style="margin-top: 40px; text-align: center; font-size: 11px; color: #777;">
+                    Thank you for your business!
+                </div>
+            </div>
+        `;
+
+        const printArea = document.getElementById('printArea');
+        printArea.innerHTML = printHTML;
+        printArea.classList.remove('hidden');
+        window.print();
+        printArea.classList.add('hidden');
     }
 
     function loadBills() {
@@ -469,21 +533,18 @@
         }
         table.innerHTML = list.map(bill => `
             <tr class="hover:bg-slate-950/50">
-                <td class="p-2">${escapeHTML(bill.customer)}</td>
+                <td class="p-2 font-medium text-white">${escapeHTML(bill.customer)}</td>
                 <td class="p-2">${escapeHTML(bill.details)}</td>
-                <td class="p-2">${escapeHTML(bill.total)}</td>
+                <td class="p-2 text-emerald-400 font-bold">Rs. ${escapeHTML(bill.total)}</td>
                 <td class="p-2 text-right whitespace-nowrap">
+                    <button onclick="printBill(${Number(bill.id)})" class="text-emerald-400 mr-2 hover:underline">Print</button>
                     <button onclick="editBill(${Number(bill.id)})" class="text-blue-400 mr-2">Edit</button>
                     <button onclick="delBill(${Number(bill.id)})" class="text-red-400">Del</button>
                 </td>
             </tr>`).join('');
     }
 
-    // ==========================================
-    // ==========================================
-    // EXCEL / CSV BILL IMPORT
-    // ==========================================
-
+    // EXCEL IMPORT WITH COMPLETE COLUMN EXTRACTION
     let excelImportedRows = [];
     let excelWorkbookName = '';
 
@@ -499,24 +560,17 @@
         box.textContent = message;
     }
 
-    function normalizeExcelHeader(value) {
-        return String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    function normalizeHeader(v) {
+        return String(v ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
     }
 
-    function findExcelColumn(headers, aliases) {
-        const normalized = headers.map(normalizeExcelHeader);
-        for (const alias of aliases) {
-            const index = normalized.indexOf(normalizeExcelHeader(alias));
-            if (index !== -1) return index;
+    function findCol(headers, aliases) {
+        const norm = headers.map(normalizeHeader);
+        for (let alias of aliases) {
+            const idx = norm.indexOf(normalizeHeader(alias));
+            if (idx !== -1) return idx;
         }
         return -1;
-    }
-
-    function numericExcelValue(value) {
-        if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
-        const cleaned = String(value ?? '').replace(/,/g, '').replace(/[^\d.-]/g, '');
-        const parsed = Number(cleaned);
-        return cleaned && Number.isFinite(parsed) ? parsed : 0;
     }
 
     function readExcelBill(event) {
@@ -524,19 +578,7 @@
         if (!file) return;
 
         if (typeof XLSX === 'undefined') {
-            showExcelStatus('Excel reader load nahi hua. Internet check karke page reload karein.', 'error');
-            return;
-        }
-
-        const allowed = /\.(xlsx|xls|csv|ods)$/i.test(file.name);
-        if (!allowed) {
-            showExcelStatus('Please .xlsx, .xls, .csv ya .ods file select karein.', 'error');
-            event.target.value = '';
-            return;
-        }
-        if (file.size > 20 * 1024 * 1024) {
-            showExcelStatus('File 20 MB se chhoti honi chahiye.', 'error');
-            event.target.value = '';
+            showExcelStatus('Excel reader load nahi hua. Page reload karein.', 'error');
             return;
         }
 
@@ -545,7 +587,7 @@
             try {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-                if (!workbook.SheetNames.length) throw new Error('Workbook mein koi sheet nahi mili.');
+                if (!workbook.SheetNames.length) throw new Error('Sheet nahi mili.');
 
                 excelWorkbookName = file.name;
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -553,212 +595,180 @@
 
                 if (!matrix.length) throw new Error('Selected sheet khaali hai.');
 
-                // Find a likely header row in the first 10 rows.
-                let headerRowIndex = 0;
-                let bestScore = -1;
-                for (let r = 0; r < Math.min(matrix.length, 10); r++) {
-                    const row = matrix[r] || [];
-                    const joined = row.map(normalizeExcelHeader);
-                    const score = ['item','description','product','qty','quantity','rate','price','amount','total']
-                        .filter(key => joined.includes(key)).length;
-                    if (score > bestScore) { bestScore = score; headerRowIndex = r; }
+                let headerRowIndex = -1;
+                for (let r = 0; r < Math.min(matrix.length, 15); r++) {
+                    const row = (matrix[r] || []).map(normalizeHeader);
+                    if (row.includes('itemname') || row.includes('item') || row.includes('unitrate') || row.includes('unitrateks') || row.includes('totalrs') || row.includes('total')) {
+                        headerRowIndex = r;
+                        break;
+                    }
                 }
 
-                let headers = (matrix[headerRowIndex] || []).map((v, i) => String(v || `Column ${i + 1}`).trim());
-                const dataRows = matrix.slice(headerRowIndex + 1).filter(row => row.some(v => String(v ?? '').trim() !== ''));
+                if (headerRowIndex === -1) headerRowIndex = 0;
 
-                // If no recognizable headings exist, use common column order:
-                // Item | Qty | Rate | Amount.
-                const itemCol = findExcelColumn(headers, ['item','item name','description','product','product name','particulars','details','name']);
-                const qtyCol = findExcelColumn(headers, ['qty','quantity','pcs','units']);
-                const rateCol = findExcelColumn(headers, ['rate','price','unit price','unit rate']);
-                const amountCol = findExcelColumn(headers, ['amount','line amount','net amount','total','value']);
-                const hasHeaders = bestScore >= 1 && itemCol !== -1;
+                const headers = (matrix[headerRowIndex] || []).map(v => String(v || '').trim());
+                const dataRows = matrix.slice(headerRowIndex + 1).filter(r => r.some(v => String(v ?? '').trim() !== ''));
+
+                const dateCol = findCol(headers, ['date', 'dated', 'bill date']);
+                const itemCol = findCol(headers, ['item name', 'item', 'description', 'product']);
+                const qtyCol = findCol(headers, ['quantity', 'qty', 'pcs', 'units']);
+                const rateCol = findCol(headers, ['unit rate (rs)', 'unit rate', 'rate', 'price', 'unit price']);
+                const totalCol = findCol(headers, ['total (rs)', 'total', 'amount', 'total amount']);
 
                 excelImportedRows = dataRows.map(row => {
-                    let item, qty, rate, amount;
-                    if (hasHeaders) {
-                        item = itemCol >= 0 ? row[itemCol] : '';
-                        qty = qtyCol >= 0 ? row[qtyCol] : '';
-                        rate = rateCol >= 0 ? row[rateCol] : '';
-                        amount = amountCol >= 0 ? row[amountCol] : '';
-                    } else {
-                        item = row[0] ?? '';
-                        qty = row[1] ?? '';
-                        rate = row[2] ?? '';
-                        amount = row[3] ?? '';
-                    }
+                    const dt = dateCol >= 0 ? row[dateCol] : '';
+                    const item = itemCol >= 0 ? row[itemCol] : row[0] || '';
+                    const qty = qtyCol >= 0 ? row[qtyCol] : row[1] || '';
+                    const rate = rateCol >= 0 ? row[rateCol] : row[2] || '';
+                    let amount = totalCol >= 0 ? row[totalCol] : row[3] || '';
 
-                    qty = qty === '' ? '' : numericExcelValue(qty);
-                    rate = rate === '' ? '' : numericExcelValue(rate);
-                    amount = amount === '' ? '' : numericExcelValue(amount);
-                    if (amount === '' && qty !== '' && rate !== '') amount = Number(qty) * Number(rate);
+                    let cleanRate = String(rate).replace(/,/g, '').replace(/[^\d.-]/g, '');
+                    let cleanAmount = String(amount).replace(/,/g, '').replace(/[^\d.-]/g, '');
 
                     return {
+                        date: String(dt ?? '').trim(),
                         item: String(item ?? '').trim(),
-                        qty,
-                        rate,
-                        amount
+                        qty: String(qty ?? '').trim(),
+                        rate: cleanRate !== '' ? Number(cleanRate) : '',
+                        amount: cleanAmount !== '' ? Number(cleanAmount) : ''
                     };
-                }).filter(row => row.item || row.amount !== '' || row.qty !== '' || row.rate !== '');
+                }).filter(r => r.item || r.amount !== '' || r.qty !== '');
 
-                if (!excelImportedRows.length) {
-                    throw new Error('Rows read nahi huin. Sheet mein data ya headings check karein.');
-                }
+                if (!excelImportedRows.length) throw new Error('Data read nahi ho saka.');
 
-                // Guess customer/supplier and date from workbook metadata only if available.
-                document.getElementById('excelCustomer').value = '';
-                document.getElementById('excelDate').value = '';
+                document.getElementById('excelCustomer').value = 'Customer Invoice';
+                document.getElementById('excelDate').value = new Date().toLocaleDateString();
+
                 renderExcelPreview();
                 document.getElementById('excelBillFields').classList.remove('hidden');
                 document.getElementById('excelPreviewWrap').classList.remove('hidden');
                 document.getElementById('saveExcelBillBtn').disabled = false;
+                document.getElementById('printExcelBillBtn').disabled = false;
 
-                showExcelStatus(
-                    `${file.name} successfully read. Sheet: ${workbook.SheetNames[0]}. ${excelImportedRows.length} item row(s) imported. Please verify before saving.`,
-                    'success'
-                );
-            } catch (error) {
-                console.error('Excel import error:', error);
-                excelImportedRows = [];
-                document.getElementById('excelPreviewWrap').classList.add('hidden');
-                document.getElementById('excelBillFields').classList.add('hidden');
-                document.getElementById('saveExcelBillBtn').disabled = true;
-                showExcelStatus(error.message || 'Excel file read nahi ho saki.', 'error');
+                showExcelStatus(`Sheet successfully imported! Total ${excelImportedRows.length} items parsed.`, 'success');
+            } catch (err) {
+                showExcelStatus(err.message || 'Excel file read nahi saki.', 'error');
             }
         };
-        reader.onerror = () => showExcelStatus('File read error. Dobara try karein.', 'error');
         reader.readAsArrayBuffer(file);
     }
 
     function renderExcelPreview() {
         const body = document.getElementById('excelPreviewBody');
         body.innerHTML = '';
-        excelImportedRows.forEach((item, index) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td class="p-1"><input data-field="item" class="w-full min-w-32 bg-slate-900 border border-slate-700 rounded p-2 text-white" aria-label="Item name"></td>
-                <td class="p-1"><input data-field="qty" type="number" min="0" step="any" class="w-20 bg-slate-900 border border-slate-700 rounded p-2 text-white" aria-label="Quantity"></td>
-                <td class="p-1"><input data-field="rate" type="number" min="0" step="any" class="w-24 bg-slate-900 border border-slate-700 rounded p-2 text-white" aria-label="Rate"></td>
-                <td class="p-1"><input data-field="amount" type="number" min="0" step="any" class="w-28 bg-slate-900 border border-slate-700 rounded p-2 text-white" aria-label="Amount"></td>
-                <td class="p-1"><button type="button" class="text-red-400 px-2 py-2" aria-label="Remove row">✕</button></td>`;
-            row.querySelector('[data-field="item"]').value = item.item;
-            row.querySelector('[data-field="qty"]').value = item.qty;
-            row.querySelector('[data-field="rate"]').value = item.rate;
-            row.querySelector('[data-field="amount"]').value = item.amount;
-            row.querySelectorAll('input').forEach(input => input.addEventListener('input', () => {
-                excelImportedRows[index][input.dataset.field] =
-                    input.dataset.field === 'item' ? input.value : (input.value === '' ? '' : Number(input.value));
-                if (input.dataset.field === 'qty' || input.dataset.field === 'rate') {
-                    const current = excelImportedRows[index];
-                    if (current.amount === '' && current.qty !== '' && current.rate !== '') {
-                        current.amount = Number(current.qty) * Number(current.rate);
-                        row.querySelector('[data-field="amount"]').value = current.amount;
-                    }
-                }
-                calculateExcelTotal();
-            }));
-            row.querySelector('button').addEventListener('click', () => {
+
+        excelImportedRows.forEach((row, index) => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-900/50';
+            tr.innerHTML = `
+                <td class="p-1"><input data-field="date" type="text" class="w-24 bg-slate-900 border border-slate-700 rounded p-1.5 text-white text-xs"></td>
+                <td class="p-1"><input data-field="item" type="text" class="w-full min-w-36 bg-slate-900 border border-slate-700 rounded p-1.5 text-white text-xs"></td>
+                <td class="p-1"><input data-field="qty" type="text" class="w-24 bg-slate-900 border border-slate-700 rounded p-1.5 text-white text-xs"></td>
+                <td class="p-1"><input data-field="rate" type="number" step="any" class="w-24 bg-slate-900 border border-slate-700 rounded p-1.5 text-white text-xs"></td>
+                <td class="p-1"><input data-field="amount" type="number" step="any" class="w-28 bg-slate-900 border border-slate-700 rounded p-1.5 text-white text-xs font-semibold text-emerald-400"></td>
+                <td class="p-1 text-center"><button type="button" class="text-red-400 hover:text-red-300 font-bold px-2 py-1">✕</button></td>
+            `;
+
+            tr.querySelector('[data-field="date"]').value = row.date;
+            tr.querySelector('[data-field="item"]').value = row.item;
+            tr.querySelector('[data-field="qty"]').value = row.qty;
+            tr.querySelector('[data-field="rate"]').value = row.rate;
+            tr.querySelector('[data-field="amount"]').value = row.amount;
+
+            tr.querySelectorAll('input').forEach(input => {
+                input.addEventListener('input', () => {
+                    const field = input.dataset.field;
+                    excelImportedRows[index][field] = (field === 'rate' || field === 'amount') ? (input.value === '' ? '' : Number(input.value)) : input.value;
+                    calculateExcelTotal();
+                });
+            });
+
+            tr.querySelector('button').addEventListener('click', () => {
                 excelImportedRows.splice(index, 1);
                 renderExcelPreview();
             });
-            body.appendChild(row);
+
+            body.appendChild(tr);
         });
-        document.getElementById('excelRowCount').textContent = `${excelImportedRows.length} rows`;
+
+        document.getElementById('excelRowCount').textContent = `${excelImportedRows.length} items`;
         calculateExcelTotal();
     }
 
     function calculateExcelTotal() {
-        const total = excelImportedRows.reduce((sum, row) => {
-            let amount = row.amount === '' ? Number(row.qty || 0) * Number(row.rate || 0) : Number(row.amount || 0);
-            return sum + (Number.isFinite(amount) ? amount : 0);
-        }, 0);
-        document.getElementById('excelGrandTotal').textContent =
-            total.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const total = excelImportedRows.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+        document.getElementById('excelGrandTotal').textContent = total.toLocaleString('en-PK', { minimumFractionDigits: 2 });
         return total;
     }
 
     function addExcelItemRow() {
-        excelImportedRows.push({ item: '', qty: 1, rate: '', amount: '' });
-        document.getElementById('excelBillFields').classList.remove('hidden');
-        document.getElementById('excelPreviewWrap').classList.remove('hidden');
-        document.getElementById('saveExcelBillBtn').disabled = false;
+        excelImportedRows.push({ date: '', item: '', qty: '1', rate: 0, amount: 0 });
         renderExcelPreview();
     }
 
     function saveExcelBill() {
-        const items = excelImportedRows.map(row => {
-            const amount = row.amount === '' ? Number(row.qty || 0) * Number(row.rate || 0) : Number(row.amount || 0);
-            return {
-                item: String(row.item || '').trim(),
-                qty: row.qty,
-                rate: row.rate,
-                amount: Number.isFinite(amount) ? amount : 0
-            };
-        }).filter(row => row.item || row.amount > 0);
-
-        if (!items.length) {
-            alert('Excel sheet mein kam az kam ek item ya amount hona chahiye.');
-            return;
-        }
-
-        const total = items.reduce((sum, row) => sum + row.amount, 0);
-        const customer = document.getElementById('excelCustomer').value.trim() || excelWorkbookName || 'Excel Imported Bill';
+        if (!excelImportedRows.length) return alert('No items to save.');
+        const total = calculateExcelTotal();
+        const customer = document.getElementById('excelCustomer').value.trim() || 'Excel Imported Bill';
         const date = document.getElementById('excelDate').value.trim();
-        const details = items.map(row =>
-            `${row.item || 'Item'}${row.qty !== '' ? ' | Qty: ' + row.qty : ''}${row.rate !== '' ? ' | Rate: ' + row.rate : ''} | Amount: ${row.amount}`
-        ).join('; ');
 
-        if (!confirm(`Save ${items.length} item(s) with total Rs. ${total.toLocaleString('en-PK')}?`)) return;
+        const details = excelImportedRows.map(r => `${r.item} (${r.qty}) @ Rs. ${r.rate} = ${r.amount}`).join('; ');
 
         const bills = getStore('bills');
-        bills.push({
+        const newBill = {
             id: Date.now(),
             customer,
-            details: `Excel Import${date ? ' | Date: ' + date : ''} | ${details}`,
-            total: String(Number(total.toFixed(2))),
-            items,
-            source: 'Excel',
-            sourceFile: excelWorkbookName
-        });
+            details,
+            total: String(total),
+            items: excelImportedRows,
+            date
+        };
+
+        bills.push(newBill);
         setStore('bills', bills);
         loadBills();
-        alert('Excel bill successfully Bills history mein save ho gaya.');
+        alert('Bill successfully saved to Bills!');
         switchTab('bills');
     }
 
-    function downloadExcelTemplate(event) {
-        event.preventDefault();
-        if (typeof XLSX === 'undefined') {
-            alert('Excel library load nahi hui. Internet check karein.');
-            return;
-        }
-        const rows = [
-            ['Item', 'Qty', 'Rate', 'Amount'],
-            ['PVC Pipe 1/2 inch', 4, 250, 1000],
-            ['Elbow', 2, 80, 160],
-            ['Socket', 3, 50, 150]
-        ];
-        const worksheet = XLSX.utils.aoa_to_sheet(rows);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Bill');
-        XLSX.writeFile(workbook, 'Anwar_Bill_Template.xlsx');
-    }
+    function printCurrentExcel() {
+        const customer = document.getElementById('excelCustomer').value.trim() || 'Customer Invoice';
+        const date = document.getElementById('excelDate').value.trim() || new Date().toLocaleDateString();
+        const total = calculateExcelTotal();
 
-    // ---------- STARTUP ----------
-    function initApp() {
-        document.getElementById('loginSection').classList.add('hidden');
-        document.getElementById('mainApp').classList.remove('hidden');
-        loadInv();
-        loadParties();
-        loadBills();
-        if (!document.querySelector('#ocrItems tr')) addOCRRow();
-    }
+        const tempBill = {
+            customer,
+            date,
+            total,
+            items: excelImportedRows
+        };
 
-    window.addEventListener('load', () => {
-        if (localStorage.getItem('isLoggedIn') === 'true') initApp();
-        if (window.lucide) lucide.createIcons();
-    });
-</script>
-</body>
-</html>
+        const printArea = document.getElementById('printArea');
+        printArea.innerHTML = `
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; font-size: 24px; font-weight: bold;">ANWAR INVENTORY</h2>
+                    <p style="margin: 4px 0; font-size: 14px;">Excel Imported Invoice</p>
+                    <p style="margin: 4px 0; font-size: 12px; color: #555;">Contact: 03463997211</p>
+                </div>
+                <hr style="border: 0; border-top: 1px solid #888; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 14px;">
+                    <div><strong>Customer:</strong> ${escapeHTML(tempBill.customer)}</div>
+                    <div><strong>Date:</strong> ${escapeHTML(tempBill.date)}</div>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px;">
+                    <thead>
+                        <tr style="background-color: #f2f2f2;">
+                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">#</th>
+                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">Date</th>
+                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">Item Name</th>
+                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">Qty</th>
+                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">Unit Rate</th>
+                            <th style="border:1px solid #ccc; padding:8px; text-align:right;">Total (Rs)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tempBill.items.map((item, idx) => `
+                            <tr>
+                                <td style="border:1px solid #ccc; padding:8px;">${idx+1}</td>
+                                <td style="border:1
