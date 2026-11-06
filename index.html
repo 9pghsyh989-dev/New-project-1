@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anwar Inventory System</title>
-    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1e293b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -22,11 +23,11 @@
             <form onsubmit="handleLogin(event)" class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Username</label>
-                    <input type="text" id="loginUser" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500">
+                    <input type="text" id="loginUser" required autocomplete="username" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Password</label>
-                    <input type="password" id="loginPass" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500">
+                    <input type="password" id="loginPass" required autocomplete="current-password" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500">
                 </div>
                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-xl text-sm">Login</button>
             </form>
@@ -47,24 +48,24 @@
             </div>
         </header>
 
-        <!-- Navigation Tabs -->
+        <!-- NAVIGATION -->
         <div class="flex gap-2 overflow-x-auto mb-6 bg-slate-900 p-1.5 rounded-2xl border border-slate-800">
-            <button onclick="switchTab('inventory')" id="btnInv" class="px-4 py-2 rounded-xl text-xs bg-blue-600 text-white font-medium">Inventory</button>
-            <button onclick="switchTab('parties')" id="btnParty" class="px-4 py-2 rounded-xl text-xs text-slate-400 font-medium">Party Ledger</button>
-            <button onclick="switchTab('bills')" id="btnBill" class="px-4 py-2 rounded-xl text-xs text-slate-400 font-medium">Bills</button>
-            <button onclick="switchTab('ocr')" id="btnOcr" class="px-4 py-2 rounded-xl text-xs text-slate-400 font-medium">OCR Scanner</button>
+            <button onclick="switchTab('inventory')" id="btnInv" class="px-4 py-2 rounded-xl text-xs bg-blue-600 text-white font-medium whitespace-nowrap">Inventory</button>
+            <button onclick="switchTab('parties')" id="btnParty" class="px-4 py-2 rounded-xl text-xs text-slate-400 font-medium whitespace-nowrap">Party Ledger</button>
+            <button onclick="switchTab('bills')" id="btnBill" class="px-4 py-2 rounded-xl text-xs text-slate-400 font-medium whitespace-nowrap">Bills</button>
+            <button onclick="switchTab('ocr')" id="btnOcr" class="px-4 py-2 rounded-xl text-xs text-slate-400 font-medium whitespace-nowrap">OCR Scanner</button>
         </div>
 
-        <!-- Inventory Tab -->
+        <!-- INVENTORY -->
         <div id="tab-inventory" class="space-y-4">
             <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <h2 id="invTitle" class="text-sm font-semibold text-white mb-3">Add Stock Item</h2>
+                <h2 class="text-sm font-semibold text-white mb-3">Add / Edit Stock Item</h2>
                 <form onsubmit="saveInv(event)" class="space-y-3">
                     <input type="hidden" id="invId">
                     <input type="text" id="invName" placeholder="Item Name" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
                     <div class="grid grid-cols-2 gap-2">
-                        <input type="number" id="invQty" placeholder="Quantity" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                        <input type="number" id="invPrice" placeholder="Price" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                        <input type="number" id="invQty" min="0" step="any" placeholder="Quantity" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                        <input type="number" id="invPrice" min="0" step="any" placeholder="Price (Rs.)" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
                     </div>
                     <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-xl text-xs">Save Item</button>
                 </form>
@@ -73,26 +74,22 @@
                 <h2 class="text-sm font-semibold text-white mb-3">Inventory Stock</h2>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs text-slate-300">
-                        <thead class="bg-slate-950 text-slate-400">
-                            <tr><th class="p-2">Name</th><th class="p-2">Qty</th><th class="p-2">Price</th><th class="p-2 text-right">Actions</th></tr>
-                        </thead>
-                        <tbody id="invTable" class="divide-y divide-slate-800">
-                            <tr><td colspan="4" class="p-4 text-center text-slate-500">No items found.</td></tr>
-                        </tbody>
+                        <thead class="bg-slate-950 text-slate-400"><tr><th class="p-2">Name</th><th class="p-2">Qty</th><th class="p-2">Price</th><th class="p-2 text-right">Actions</th></tr></thead>
+                        <tbody id="invTable" class="divide-y divide-slate-800"><tr><td colspan="4" class="p-4 text-center text-slate-500">No items found.</td></tr></tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- Party Ledger Tab -->
+        <!-- PARTY LEDGER -->
         <div id="tab-parties" class="hidden space-y-4">
             <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <h2 id="partyTitle" class="text-sm font-semibold text-white mb-3">Add Party</h2>
+                <h2 class="text-sm font-semibold text-white mb-3">Add / Edit Party</h2>
                 <form onsubmit="saveParty(event)" class="space-y-3">
                     <input type="hidden" id="partyId">
                     <input type="text" id="partyName" placeholder="Party Name" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
                     <input type="text" id="partyPhone" placeholder="Phone Number" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                    <input type="number" id="partyBal" placeholder="Balance (+/-)" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                    <input type="number" id="partyBal" step="any" placeholder="Balance (+/-)" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
                     <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-xl text-xs">Save Party</button>
                 </form>
             </div>
@@ -100,26 +97,22 @@
                 <h2 class="text-sm font-semibold text-white mb-3">Party Ledgers</h2>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs text-slate-300">
-                        <thead class="bg-slate-950 text-slate-400">
-                            <tr><th class="p-2">Name</th><th class="p-2">Phone</th><th class="p-2">Balance</th><th class="p-2 text-right">Actions</th></tr>
-                        </thead>
-                        <tbody id="partyTable" class="divide-y divide-slate-800">
-                            <tr><td colspan="4" class="p-4 text-center text-slate-500">No parties found.</td></tr>
-                        </tbody>
+                        <thead class="bg-slate-950 text-slate-400"><tr><th class="p-2">Name</th><th class="p-2">Phone</th><th class="p-2">Balance</th><th class="p-2 text-right">Actions</th></tr></thead>
+                        <tbody id="partyTable" class="divide-y divide-slate-800"><tr><td colspan="4" class="p-4 text-center text-slate-500">No parties found.</td></tr></tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- Bills Tab -->
+        <!-- BILLS -->
         <div id="tab-bills" class="hidden space-y-4">
             <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <h2 id="billTitle" class="text-sm font-semibold text-white mb-3">Create Bill</h2>
+                <h2 class="text-sm font-semibold text-white mb-3">Create / Edit Bill</h2>
                 <form onsubmit="saveBill(event)" class="space-y-3">
                     <input type="hidden" id="billId">
-                    <input type="text" id="billCust" placeholder="Customer Name" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                    <input type="text" id="billCust" placeholder="Customer / Shop Name" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
                     <input type="text" id="billDet" placeholder="Items Summary" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                    <input type="number" id="billTot" placeholder="Total Amount" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                    <input type="number" id="billTot" min="0" step="any" placeholder="Total Amount (Rs.)" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
                     <button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded-xl text-xs">Save Bill</button>
                 </form>
             </div>
@@ -127,31 +120,93 @@
                 <h2 class="text-sm font-semibold text-white mb-3">Invoices History</h2>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs text-slate-300">
-                        <thead class="bg-slate-950 text-slate-400">
-                            <tr><th class="p-2">Customer</th><th class="p-2">Details</th><th class="p-2">Total</th><th class="p-2 text-right">Actions</th></tr>
-                        </thead>
-                        <tbody id="billTable" class="divide-y divide-slate-800">
-                            <tr><td colspan="4" class="p-4 text-center text-slate-500">No bills found.</td></tr>
-                        </tbody>
+                        <thead class="bg-slate-950 text-slate-400"><tr><th class="p-2">Customer</th><th class="p-2">Details</th><th class="p-2">Total (Rs.)</th><th class="p-2 text-right">Actions</th></tr></thead>
+                        <tbody id="billTable" class="divide-y divide-slate-800"><tr><td colspan="4" class="p-4 text-center text-slate-500">No bills found.</td></tr></tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- OCR Tab (Optimized for Pakistani Bills) -->
+        <!-- HYBRID PRINTED + HANDWRITTEN OCR SCANNER -->
         <div id="tab-ocr" class="hidden space-y-4">
-            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl max-w-xl mx-auto">
-                <h2 class="text-sm font-semibold text-white mb-3">Pakistani Bill OCR Scanner</h2>
-                <p class="text-[11px] text-slate-400 mb-3">Upload clear shop/store receipt. Optimized to extract total amounts and text cleanly.</p>
-                <input type="file" id="ocrFile" accept="image/*" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-slate-300 mb-3">
-                <button onclick="runOCR()" class="w-full bg-purple-600 text-white py-2 rounded-xl text-xs mb-3">Scan Receipt</button>
-                <div id="ocrRes" class="bg-slate-950 p-3 rounded-xl text-xs text-slate-300 min-h-[120px] whitespace-pre-wrap">No scan output yet.</div>
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl max-w-3xl mx-auto">
+                <h2 class="text-lg font-bold text-white mb-2">Smart Bill Scanner</h2>
+                <p class="text-xs text-slate-400 mb-4">Printed aur handwritten dono bills ke liye hybrid scanner. OCR suggestions dega; aap item, quantity aur amount verify/edit kar sakte hain.</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Bill type</label>
+                        <select id="ocrMode" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white">
+                            <option value="both">Auto – Printed + Handwritten</option>
+                            <option value="printed">Printed bill</option>
+                            <option value="handwritten">Handwritten bill</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Bill photo</label>
+                        <input type="file" id="ocrFile" accept="image/*" capture="environment" onchange="previewOCRImage()" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white">
+                    </div>
+                </div>
+
+                <img id="ocrPreview" class="hidden w-full max-h-96 object-contain rounded-xl mb-3 border border-slate-700 bg-slate-950" alt="Bill preview">
+
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="scanBtn" onclick="runOCR()" class="bg-purple-600 hover:bg-purple-500 text-white py-3 rounded-xl font-semibold">Scan Bill</button>
+                    <button onclick="addOCRRow()" class="bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl font-semibold">+ Add Item Row</button>
+                </div>
+
+                <div id="ocrProgress" class="hidden mt-4">
+                    <div class="flex justify-between text-xs text-slate-400 mb-2"><span id="ocrStatus">Preparing image...</span><span id="ocrPercent">0%</span></div>
+                    <div class="w-full bg-slate-800 rounded-full h-2"><div id="ocrBar" class="bg-purple-500 h-2 rounded-full" style="width:0%"></div></div>
+                </div>
+
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Shop / Supplier</label>
+                        <input id="ocrShop" type="text" placeholder="Shop or supplier name" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Bill date</label>
+                        <input id="ocrDate" type="text" placeholder="Date (if visible)" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-sm">
+                    </div>
+                </div>
+
+                <div class="mt-4 bg-slate-950 border border-slate-800 rounded-xl p-3">
+                    <div class="flex items-center justify-between gap-2 mb-3">
+                        <h3 class="text-sm font-bold text-emerald-400">Editable item details</h3>
+                        <span class="text-[10px] text-slate-500">Check every OCR suggestion</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full min-w-[560px] text-left text-xs">
+                            <thead class="text-slate-400 border-b border-slate-800">
+                                <tr><th class="p-2">Item / Description</th><th class="p-2 w-20">Qty</th><th class="p-2 w-24">Rate</th><th class="p-2 w-28">Amount</th><th class="p-2"> </th></tr>
+                            </thead>
+                            <tbody id="ocrItems"></tbody>
+                        </table>
+                    </div>
+                    <div class="flex flex-wrap justify-between items-center gap-3 mt-4">
+                        <p class="text-xs text-slate-400">Calculated total</p>
+                        <div class="text-xl font-bold text-emerald-400">Rs. <span id="ocrGrandTotal">0.00</span></div>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-2">Amount field editable hai. Agar bill par line amount pehle se likha hai to Rate/Qty ke bajaye Amount mein woh value enter karein.</p>
+                </div>
+
+                <details class="mt-4 bg-slate-950 border border-slate-800 rounded-xl p-3">
+                    <summary class="text-sm font-bold text-blue-400 cursor-pointer">Raw OCR text (review)</summary>
+                    <textarea id="ocrRaw" readonly rows="9" placeholder="Scanned text yahan show hoga..." class="w-full mt-3 bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs text-slate-200"></textarea>
+                </details>
+
+                <div class="grid grid-cols-2 gap-2 mt-4">
+                    <button onclick="useOCRSuggestions()" class="bg-blue-700 hover:bg-blue-600 text-white py-3 rounded-xl text-sm">Rebuild Item Suggestions</button>
+                    <button onclick="saveOCRBill()" class="bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-semibold text-sm">Save Bill</button>
+                </div>
+                <p class="text-[10px] text-amber-300 mt-3">Important: Browser OCR is strongest on clear printed text. Handwriting recognition may be inaccurate; verify the original photo before saving. Reliable handwriting AI requires a secure server-side vision service.</p>
             </div>
         </div>
     </div>
 
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="hidden fixed inset-0 bg-slate-950/80 flex items-center justify-center p-4">
+    <!-- SETTINGS MODAL -->
+    <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-sm">
             <h3 class="text-sm font-bold text-white mb-3">Change Credentials</h3>
             <form onsubmit="updateCreds(event)" class="space-y-3">
@@ -165,271 +220,575 @@
         </div>
     </div>
 
-    <!-- FOOTER -->
     <footer class="bg-slate-950 text-slate-400 text-center py-3 border-t border-slate-900 text-xs">
-        Powered by <span class="font-semibold text-blue-400">Usman Qureshi</span> | Contact: 
-        <a href="tel:03463997211" class="text-slate-200 hover:underline">03463997211</a>
+        Powered by <span class="font-semibold text-blue-400">Usman Qureshi</span> |
+        Contact: <a href="tel:03463997211" class="text-slate-200 hover:underline">03463997211</a>
     </footer>
 
-    <script>
-        lucide.createIcons();
+<script>
+    // ---------- SAFE LOCAL STORAGE ----------
+    function getStore(key) {
+        try {
+            const value = JSON.parse(localStorage.getItem(key) || '[]');
+            return Array.isArray(value) ? value : [];
+        } catch (error) {
+            console.error('Storage read error:', error);
+            return [];
+        }
+    }
 
-        function switchTab(t) {
-            ['inventory', 'parties', 'bills', 'ocr'].forEach(k => {
-                document.getElementById(`tab-${k}`).classList.add('hidden');
+    function setStore(key, data) {
+        try {
+            localStorage.setItem(key, JSON.stringify(data));
+        } catch (error) {
+            alert('Storage full or unavailable. Please export/backup your data.');
+            console.error(error);
+        }
+    }
+
+    // Escape user-entered text before placing it in HTML tables.
+    function escapeHTML(value) {
+        return String(value ?? '').replace(/[&<>"']/g, char => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[char]);
+    }
+
+    // ---------- NAVIGATION ----------
+    function switchTab(tab) {
+        ['inventory', 'parties', 'bills', 'ocr'].forEach(key => {
+            document.getElementById(`tab-${key}`).classList.add('hidden');
+        });
+
+        ['btnInv', 'btnParty', 'btnBill', 'btnOcr'].forEach(id => {
+            const button = document.getElementById(id);
+            button.classList.remove('bg-blue-600', 'text-white');
+            button.classList.add('text-slate-400');
+        });
+
+        document.getElementById(`tab-${tab}`).classList.remove('hidden');
+
+        const activeId = {
+            inventory: 'btnInv',
+            parties: 'btnParty',
+            bills: 'btnBill',
+            ocr: 'btnOcr'
+        }[tab];
+
+        const activeButton = document.getElementById(activeId);
+        activeButton.classList.add('bg-blue-600', 'text-white');
+        activeButton.classList.remove('text-slate-400');
+    }
+
+    // ---------- LOGIN ----------
+    function handleLogin(event) {
+        event.preventDefault();
+        const username = document.getElementById('loginUser').value.trim();
+        const password = document.getElementById('loginPass').value;
+        const savedUser = localStorage.getItem('appUser') || 'admin';
+        const savedPass = localStorage.getItem('appPass') || '1234';
+
+        if (username === savedUser && password === savedPass) {
+            localStorage.setItem('isLoggedIn', 'true');
+            initApp();
+        } else {
+            alert('Invalid username or password.');
+        }
+    }
+
+    function handleLogout() {
+        localStorage.removeItem('isLoggedIn');
+        location.reload();
+    }
+
+    function openSettingsModal() {
+        document.getElementById('settingsModal').classList.remove('hidden');
+    }
+
+    function closeSettingsModal() {
+        document.getElementById('settingsModal').classList.add('hidden');
+    }
+
+    function updateCreds(event) {
+        event.preventDefault();
+        localStorage.setItem('appUser', document.getElementById('newU').value.trim());
+        localStorage.setItem('appPass', document.getElementById('newP').value);
+        alert('Credentials updated. Please log in with the new details.');
+        closeSettingsModal();
+        handleLogout();
+    }
+
+    // ---------- INVENTORY ----------
+    function saveInv(event) {
+        event.preventDefault();
+        const id = document.getElementById('invId').value;
+        const item = {
+            id: id ? Number(id) : Date.now(),
+            name: document.getElementById('invName').value.trim(),
+            qty: document.getElementById('invQty').value,
+            price: document.getElementById('invPrice').value
+        };
+
+        let list = getStore('inv');
+        if (id) list = list.map(row => row.id == id ? item : row);
+        else list.push(item);
+
+        setStore('inv', list);
+        event.target.reset();
+        document.getElementById('invId').value = '';
+        loadInv();
+    }
+
+    function editInv(id) {
+        const item = getStore('inv').find(row => row.id == id);
+        if (!item) return;
+        document.getElementById('invId').value = item.id;
+        document.getElementById('invName').value = item.name;
+        document.getElementById('invQty').value = item.qty;
+        document.getElementById('invPrice').value = item.price;
+    }
+
+    function delInv(id) {
+        if (!confirm('Delete this inventory item?')) return;
+        setStore('inv', getStore('inv').filter(row => row.id != id));
+        loadInv();
+    }
+
+    function loadInv() {
+        const list = getStore('inv');
+        const table = document.getElementById('invTable');
+        if (!list.length) {
+            table.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-500">No items found.</td></tr>';
+            return;
+        }
+        table.innerHTML = list.map(item => `
+            <tr class="hover:bg-slate-950/50">
+                <td class="p-2">${escapeHTML(item.name)}</td>
+                <td class="p-2">${escapeHTML(item.qty)}</td>
+                <td class="p-2">${escapeHTML(item.price)}</td>
+                <td class="p-2 text-right whitespace-nowrap">
+                    <button onclick="editInv(${Number(item.id)})" class="text-blue-400 mr-2">Edit</button>
+                    <button onclick="delInv(${Number(item.id)})" class="text-red-400">Del</button>
+                </td>
+            </tr>`).join('');
+    }
+
+    // ---------- PARTIES ----------
+    function saveParty(event) {
+        event.preventDefault();
+        const id = document.getElementById('partyId').value;
+        const party = {
+            id: id ? Number(id) : Date.now(),
+            name: document.getElementById('partyName').value.trim(),
+            phone: document.getElementById('partyPhone').value.trim(),
+            balance: document.getElementById('partyBal').value
+        };
+
+        let list = getStore('parties');
+        if (id) list = list.map(row => row.id == id ? party : row);
+        else list.push(party);
+
+        setStore('parties', list);
+        event.target.reset();
+        document.getElementById('partyId').value = '';
+        loadParties();
+    }
+
+    function editParty(id) {
+        const party = getStore('parties').find(row => row.id == id);
+        if (!party) return;
+        document.getElementById('partyId').value = party.id;
+        document.getElementById('partyName').value = party.name;
+        document.getElementById('partyPhone').value = party.phone || '';
+        document.getElementById('partyBal').value = party.balance;
+    }
+
+    function delParty(id) {
+        if (!confirm('Delete this party?')) return;
+        setStore('parties', getStore('parties').filter(row => row.id != id));
+        loadParties();
+    }
+
+    function loadParties() {
+        const list = getStore('parties');
+        const table = document.getElementById('partyTable');
+        if (!list.length) {
+            table.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-500">No parties found.</td></tr>';
+            return;
+        }
+        table.innerHTML = list.map(party => `
+            <tr class="hover:bg-slate-950/50">
+                <td class="p-2">${escapeHTML(party.name)}</td>
+                <td class="p-2">${escapeHTML(party.phone || '-')}</td>
+                <td class="p-2">${escapeHTML(party.balance)}</td>
+                <td class="p-2 text-right whitespace-nowrap">
+                    <button onclick="editParty(${Number(party.id)})" class="text-blue-400 mr-2">Edit</button>
+                    <button onclick="delParty(${Number(party.id)})" class="text-red-400">Del</button>
+                </td>
+            </tr>`).join('');
+    }
+
+    // ---------- BILLS ----------
+    function saveBill(event) {
+        event.preventDefault();
+        const id = document.getElementById('billId').value;
+        const bill = {
+            id: id ? Number(id) : Date.now(),
+            customer: document.getElementById('billCust').value.trim(),
+            details: document.getElementById('billDet').value.trim(),
+            total: document.getElementById('billTot').value
+        };
+
+        let list = getStore('bills');
+        if (id) list = list.map(row => row.id == id ? {...row, ...bill} : row);
+        else list.push(bill);
+
+        setStore('bills', list);
+        event.target.reset();
+        document.getElementById('billId').value = '';
+        loadBills();
+    }
+
+    function editBill(id) {
+        const bill = getStore('bills').find(row => row.id == id);
+        if (!bill) return;
+        document.getElementById('billId').value = bill.id;
+        document.getElementById('billCust').value = bill.customer;
+        document.getElementById('billDet').value = bill.details;
+        document.getElementById('billTot').value = bill.total;
+    }
+
+    function delBill(id) {
+        if (!confirm('Delete this bill?')) return;
+        setStore('bills', getStore('bills').filter(row => row.id != id));
+        loadBills();
+    }
+
+    function loadBills() {
+        const list = getStore('bills');
+        const table = document.getElementById('billTable');
+        if (!list.length) {
+            table.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-500">No bills found.</td></tr>';
+            return;
+        }
+        table.innerHTML = list.map(bill => `
+            <tr class="hover:bg-slate-950/50">
+                <td class="p-2">${escapeHTML(bill.customer)}</td>
+                <td class="p-2">${escapeHTML(bill.details)}</td>
+                <td class="p-2">${escapeHTML(bill.total)}</td>
+                <td class="p-2 text-right whitespace-nowrap">
+                    <button onclick="editBill(${Number(bill.id)})" class="text-blue-400 mr-2">Edit</button>
+                    <button onclick="delBill(${Number(bill.id)})" class="text-red-400">Del</button>
+                </td>
+            </tr>`).join('');
+    }
+
+    // ==========================================
+    // HYBRID PRINTED + HANDWRITTEN BILL SCANNER
+    // ==========================================
+
+    let ocrRowCounter = 0;
+
+    function previewOCRImage() {
+        const file = document.getElementById('ocrFile').files[0];
+        const preview = document.getElementById('ocrPreview');
+        if (!file) { preview.classList.add('hidden'); return; }
+        if (!file.type.startsWith('image/')) {
+            alert('Please select a valid image file.');
+            document.getElementById('ocrFile').value = '';
+            return;
+        }
+        if (file.size > 15 * 1024 * 1024) {
+            alert('Image size 15 MB se kam honi chahiye.');
+            document.getElementById('ocrFile').value = '';
+            return;
+        }
+        if (preview.dataset.objectUrl) URL.revokeObjectURL(preview.dataset.objectUrl);
+        const url = URL.createObjectURL(file);
+        preview.dataset.objectUrl = url;
+        preview.src = url;
+        preview.classList.remove('hidden');
+    }
+
+    function setOCRProgress(percent, message) {
+        document.getElementById('ocrProgress').classList.remove('hidden');
+        document.getElementById('ocrBar').style.width = percent + '%';
+        document.getElementById('ocrPercent').textContent = percent + '%';
+        document.getElementById('ocrStatus').textContent = message;
+    }
+
+    function loadImageFromFile(file) {
+        return new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(file);
+            const image = new Image();
+            image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
+            image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image open nahi ho saki.')); };
+            image.src = url;
+        });
+    }
+
+    // Keep original detail in first pass; make a gentle contrast version for second pass.
+    function prepareOCRCanvas(image, strongContrast = false) {
+        const canvas = document.createElement('canvas');
+        const maxDimension = 2600;
+        const scale = Math.min(2, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const p = data.data;
+        let min = 255, max = 0;
+        const gray = new Uint8Array(canvas.width * canvas.height);
+
+        for (let i = 0, j = 0; i < p.length; i += 4, j++) {
+            const v = Math.round(0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]);
+            gray[j] = v;
+            min = Math.min(min, v);
+            max = Math.max(max, v);
+        }
+
+        const range = Math.max(1, max - min);
+        for (let i = 0, j = 0; i < p.length; i += 4, j++) {
+            let v = (gray[j] - min) * 255 / range;
+            if (strongContrast) v = Math.max(0, Math.min(255, (v - 128) * 1.22 + 128));
+            p[i] = p[i + 1] = p[i + 2] = v;
+            p[i + 3] = 255;
+        }
+        ctx.putImageData(data, 0, 0);
+        return canvas;
+    }
+
+    function normalizeOCRText(text) {
+        return String(text || '').replace(/\r/g, '\n').replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').trim();
+    }
+
+    function extractBillDate(text) {
+        const patterns = [
+            /\b(?:0?[1-9]|[12]\d|3[01])[\/.-](?:0?[1-9]|1[0-2])[\/.-](?:20)?\d{2}\b/,
+            /\b20\d{2}[\/.-](?:0?[1-9]|1[0-2])[\/.-](?:0?[1-9]|[12]\d|3[01])\b/
+        ];
+        for (const pattern of patterns) {
+            const match = text.match(pattern);
+            if (match) return match[0];
+        }
+        return '';
+    }
+
+    function extractShopName(text) {
+        const ignored = /\b(invoice|receipt|cash memo|date|time|phone|mobile|address|customer|bill no|invoice no)\b/i;
+        return normalizeOCRText(text).split('\n').map(x => x.trim()).find(x =>
+            /[A-Za-z]{3,}/.test(x) && !ignored.test(x) && x.length >= 3 && x.length <= 65
+        ) || '';
+    }
+
+    function addOCRRow(item = '', qty = '', rate = '', amount = '') {
+        const body = document.getElementById('ocrItems');
+        const id = ++ocrRowCounter;
+        const row = document.createElement('tr');
+        row.className = 'border-b border-slate-800';
+        row.dataset.rowId = id;
+        row.innerHTML = `
+            <td class="p-1"><input aria-label="Item name" class="ocr-item w-full min-w-36 bg-slate-900 border border-slate-700 rounded p-2 text-white" placeholder="Item name"></td>
+            <td class="p-1"><input aria-label="Quantity" type="number" min="0" step="any" class="ocr-qty w-20 bg-slate-900 border border-slate-700 rounded p-2 text-white" placeholder="1"></td>
+            <td class="p-1"><input aria-label="Rate" type="number" min="0" step="any" class="ocr-rate w-24 bg-slate-900 border border-slate-700 rounded p-2 text-white" placeholder="0"></td>
+            <td class="p-1"><input aria-label="Line amount" type="number" min="0" step="any" class="ocr-amount w-28 bg-slate-900 border border-slate-700 rounded p-2 text-white" placeholder="0"></td>
+            <td class="p-1"><button type="button" class="text-red-400 px-2 py-2" aria-label="Remove item" onclick="this.closest('tr').remove(); calculateOCRTotal();">✕</button></td>`;
+        body.appendChild(row);
+        row.querySelector('.ocr-item').value = item;
+        row.querySelector('.ocr-qty').value = qty;
+        row.querySelector('.ocr-rate').value = rate;
+        row.querySelector('.ocr-amount').value = amount;
+        row.querySelectorAll('input').forEach(input => input.addEventListener('input', calculateOCRTotal));
+        calculateOCRTotal();
+    }
+
+    function calculateOCRTotal() {
+        let total = 0;
+        document.querySelectorAll('#ocrItems tr').forEach(row => {
+            const amountInput = row.querySelector('.ocr-amount');
+            const qty = Number(row.querySelector('.ocr-qty').value);
+            const rate = Number(row.querySelector('.ocr-rate').value);
+            let amount = amountInput.value.trim() !== '' ? Number(amountInput.value) : (qty * rate);
+            if (!Number.isFinite(amount) || amount < 0) amount = 0;
+            total += amount;
+        });
+        document.getElementById('ocrGrandTotal').textContent = total.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return total;
+    }
+
+    function extractNumericCandidates(line) {
+        // These substitutions are suggestions only; handwriting often needs human correction.
+        const normalized = line.replace(/[Oo]/g, '0').replace(/[Il|]/g, '1');
+        const matches = normalized.match(/(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?/g);
+        return matches ? matches.map(v => Number(v.replace(/,/g, ''))).filter(v => Number.isFinite(v) && v > 0 && v < 100000000) : [];
+    }
+
+    function useOCRSuggestions() {
+        const text = document.getElementById('ocrRaw').value;
+        if (!text.trim()) { alert('Pehle bill scan karein.'); return; }
+
+        const lines = normalizeOCRText(text).split('\n').map(v => v.trim()).filter(Boolean);
+        const suggestions = [];
+
+        for (const line of lines) {
+            const values = extractNumericCandidates(line);
+            if (!values.length) continue;
+            // Only propose a row when a line contains text plus at least one numeric value.
+            const words = line.replace(/[0-9,.$%/-]+/g, ' ').replace(/\s+/g, ' ').trim();
+            if (!words && values.length < 1) continue;
+            suggestions.push({
+                item: words.slice(0, 70),
+                qty: '',
+                rate: '',
+                amount: values[values.length - 1]
             });
-            ['Inv', 'Party', 'Bill', 'Ocr'].forEach(k => {
-                const b = document.getElementById(`btn${k}`);
-                if(b) {
-                    b.classList.remove('bg-blue-600', 'text-white');
-                    b.classList.add('text-slate-400');
+        }
+
+        if (!suggestions.length) {
+            alert('OCR se item/amount suggestions nahi milin. Add Item Row par tap karke details manually enter karein.');
+            return;
+        }
+
+        document.getElementById('ocrItems').innerHTML = '';
+        ocrRowCounter = 0;
+        suggestions.slice(0, 40).forEach(row => addOCRRow(row.item, row.qty, row.rate, row.amount));
+        alert('OCR suggestions add ho gayi hain. Har item aur amount ko original bill se verify karein.');
+    }
+
+    async function runOCR() {
+        const file = document.getElementById('ocrFile').files[0];
+        const button = document.getElementById('scanBtn');
+        if (!file) { alert('Pehle bill ki photo select karein.'); return; }
+        if (!file.type.startsWith('image/')) { alert('Valid image select karein.'); return; }
+        if (file.size > 15 * 1024 * 1024) { alert('Image 15 MB se chhoti honi chahiye.'); return; }
+        if (typeof Tesseract === 'undefined') {
+            alert('OCR library load nahi hui. Internet check karke page reload karein.');
+            return;
+        }
+
+        button.disabled = true;
+        button.textContent = 'Scanning...';
+        let worker;
+
+        try {
+            setOCRProgress(5, 'Photo open ho rahi hai...');
+            const image = await loadImageFromFile(file);
+            setOCRProgress(12, 'Image enhance ho rahi hai...');
+            const normalCanvas = prepareOCRCanvas(image, false);
+            const contrastCanvas = prepareOCRCanvas(image, true);
+
+            setOCRProgress(18, 'OCR language model load ho raha hai...');
+            worker = await Tesseract.createWorker('eng', 1, {
+                logger: message => {
+                    if (message.status === 'recognizing text') {
+                        setOCRProgress(20 + Math.round(message.progress * 65), 'Bill text read ho raha hai...');
+                    }
                 }
             });
-            document.getElementById(`tab-${t}`).classList.remove('hidden');
-            let activeId = t === 'inventory' ? 'btnInv' : t === 'parties' ? 'btnParty' : t === 'bills' ? 'btnBill' : 'btnOcr';
-            const activeB = document.getElementById(activeId);
-            if(activeB) { 
-                activeB.classList.add('bg-blue-600', 'text-white'); 
-                activeB.classList.remove('text-slate-400'); 
-            }
-        }
 
-        function getStore(k) { return JSON.parse(localStorage.getItem(k)) || []; }
-        function setStore(k, d) { localStorage.setItem(k, JSON.stringify(d)); }
-
-        function handleLogin(e) {
-            e.preventDefault();
-            const u = document.getElementById('loginUser').value;
-            const p = document.getElementById('loginPass').value;
-            const su = localStorage.getItem('appUser') || 'admin';
-            const sp = localStorage.getItem('appPass') || '1234';
-            if(u === su && p === sp) {
-                localStorage.setItem('isLoggedIn', 'true');
-                initApp();
-            } else { alert('Invalid credentials!'); }
-        }
-
-        function handleLogout() {
-            localStorage.removeItem('isLoggedIn');
-            location.reload();
-        }
-
-        function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); }
-        function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
-        function updateCreds(e) {
-            e.preventDefault();
-            localStorage.setItem('appUser', document.getElementById('newU').value);
-            localStorage.setItem('appPass', document.getElementById('newP').value);
-            alert('Updated successfully!');
-            closeSettingsModal();
-            handleLogout();
-        }
-
-        // Inventory
-        function saveInv(e) {
-            e.preventDefault();
-            const id = document.getElementById('invId').value;
-            const name = document.getElementById('invName').value;
-            const qty = document.getElementById('invQty').value;
-            const price = document.getElementById('invPrice').value;
-            let list = getStore('inv');
-            if(id) { list = list.map(i => i.id == id ? {id:Number(id),name,qty,price}:i); }
-            else { list.push({id:Date.now(),name,qty,price}); }
-            setStore('inv', list);
-            e.target.reset();
-            document.getElementById('invId').value = '';
-            loadInv();
-        }
-        function editInv(id) {
-            const item = getStore('inv').find(i => i.id == id);
-            if(item) {
-                document.getElementById('invId').value = item.id;
-                document.getElementById('invName').value = item.name;
-                document.getElementById('invQty').value = item.qty;
-                document.getElementById('invPrice').value = item.price;
-            }
-        }
-        function delInv(id) {
-            setStore('inv', getStore('inv').filter(i => i.id != id));
-            loadInv();
-        }
-        function loadInv() {
-            const list = getStore('inv');
-            const tb = document.getElementById('invTable');
-            if(list.length === 0) { tb.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500">No items found.</td></tr>`; return; }
-            tb.innerHTML = '';
-            list.forEach(i => {
-                tb.innerHTML += `<tr class="hover:bg-slate-950/50"><td class="p-2">${i.name}</td><td class="p-2">${i.qty}</td><td class="p-2">${i.price}</td><td class="p-2 text-right"><button onclick="editInv(${i.id})" class="text-blue-400 mr-2">Edit</button><button onclick="delInv(${i.id})" class="text-red-400">Del</button></td></tr>`;
+            await worker.setParameters({
+                preserve_interword_spaces: '1',
+                user_defined_dpi: '300',
+                tessedit_pageseg_mode: document.getElementById('ocrMode').value === 'handwritten' ? '11' : '6'
             });
-        }
 
-        // Parties
-        function saveParty(e) {
-            e.preventDefault();
-            const id = document.getElementById('partyId').value;
-            const name = document.getElementById('partyName').value;
-            const phone = document.getElementById('partyPhone').value;
-            const balance = document.getElementById('partyBal').value;
-            let list = getStore('parties');
-            if(id) { list = list.map(p => p.id == id ? {id:Number(id),name,phone,balance}:p); }
-            else { list.push({id:Date.now(),name,phone,balance}); }
-            setStore('parties', list);
-            e.target.reset();
-            document.getElementById('partyId').value = '';
-            loadParties();
-        }
-        function editParty(id) {
-            const p = getStore('parties').find(x => x.id == id);
-            if(p) {
-                document.getElementById('partyId').value = p.id;
-                document.getElementById('partyName').value = p.name;
-                document.getElementById('partyPhone').value = p.phone;
-                document.getElementById('partyBal').value = p.balance;
+            const first = await worker.recognize(normalCanvas);
+            setOCRProgress(55, 'Second image pass chal raha hai...');
+            const second = await worker.recognize(contrastCanvas);
+
+            const firstText = first.data.text || '';
+            const secondText = second.data.text || '';
+            const firstConfidence = Number(first.data.confidence || 0);
+            const secondConfidence = Number(second.data.confidence || 0);
+            const selected = secondConfidence > firstConfidence ? secondText : firstText;
+            const text = normalizeOCRText(selected);
+
+            if (!text) throw new Error('Text read nahi hua. Camera se seedhi, bright aur close photo lein.');
+
+            document.getElementById('ocrRaw').value = text;
+            document.getElementById('ocrDate').value = extractBillDate(text);
+            document.getElementById('ocrShop').value = extractShopName(text);
+
+            // Build editable suggestions. Never treat these as confirmed accounting data.
+            document.getElementById('ocrItems').innerHTML = '';
+            ocrRowCounter = 0;
+            useOCRSuggestions();
+
+            setOCRProgress(100, `Scan complete • confidence guide: ${Math.round(Math.max(firstConfidence, secondConfidence))}%`);
+            alert('Scan complete. Handwritten text mein mistakes ho sakti hain. Items aur amounts ko original bill se check karke hi Save karein.');
+        } catch (error) {
+            console.error('OCR error:', error);
+            setOCRProgress(0, 'Scan failed');
+            alert('Scan error: ' + (error.message || 'Unknown error') + '\nInternet connection check karein aur dobara try karein.');
+        } finally {
+            if (worker) {
+                try { await worker.terminate(); } catch (e) { console.warn(e); }
             }
+            button.disabled = false;
+            button.textContent = 'Scan Bill';
         }
-        function delParty(id) {
-            setStore('parties', getStore('parties').filter(p => p.id != id));
-            loadParties();
-        }
-        function loadParties() {
-            const list = getStore('parties');
-            const tb = document.getElementById('partyTable');
-            if(list.length === 0) { tb.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500">No parties found.</td></tr>`; return; }
-            tb.innerHTML = '';
-            list.forEach(p => {
-                tb.innerHTML += `<tr class="hover:bg-slate-950/50"><td class="p-2">${p.name}</td><td class="p-2">${p.phone||'-'}</td><td class="p-2">${p.balance}</td><td class="p-2 text-right"><button onclick="editParty(${p.id})" class="text-blue-400 mr-2">Edit</button><button onclick="delParty(${p.id})" class="text-red-400">Del</button></td></tr>`;
-            });
-        }
+    }
 
-        // Bills
-        function saveBill(e) {
-            e.preventDefault();
-            const id = document.getElementById('billId').value;
-            const customer = document.getElementById('billCust').value;
-            const details = document.getElementById('billDet').value;
-            const total = document.getElementById('billTot').value;
-            let list = getStore('bills');
-            if(id) { list = list.map(b => b.id == id ? {id:Number(id),customer,details,total}:b); }
-            else { list.push({id:Date.now(),customer,details,total}); }
-            setStore('bills', list);
-            e.target.reset();
-            document.getElementById('billId').value = '';
-            loadBills();
-        }
-        function editBill(id) {
-            const b = getStore('bills').find(x => x.id == id);
-            if(b) {
-                document.getElementById('billId').value = b.id;
-                document.getElementById('billCust').value = b.customer;
-                document.getElementById('billDet').value = b.details;
-                document.getElementById('billTot').value = b.total;
-            }
-        }
-        function delBill(id) {
-            setStore('bills', getStore('bills').filter(b => b.id != id));
-            loadBills();
-        }
-        function loadBills() {
-            const list = getStore('bills');
-            const tb = document.getElementById('billTable');
-            if(list.length === 0) { tb.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500">No bills found.</td></tr>`; return; }
-            tb.innerHTML = '';
-            list.forEach(b => {
-                tb.innerHTML += `<tr class="hover:bg-slate-950/50"><td class="p-2">${b.customer}</td><td class="p-2">${b.details}</td><td class="p-2">${b.total}</td><td class="p-2 text-right"><button onclick="editBill(${b.id})" class="text-blue-400 mr-2">Edit</button><button onclick="delBill(${b.id})" class="text-red-400">Del</button></td></tr>`;
-            });
+    function saveOCRBill() {
+        const rows = Array.from(document.querySelectorAll('#ocrItems tr'));
+        const items = rows.map(row => {
+            const item = row.querySelector('.ocr-item').value.trim();
+            const qty = row.querySelector('.ocr-qty').value;
+            const rate = row.querySelector('.ocr-rate').value;
+            const amountText = row.querySelector('.ocr-amount').value;
+            const amount = amountText !== '' ? Number(amountText) : Number(qty || 0) * Number(rate || 0);
+            return { item, qty, rate, amount: Number.isFinite(amount) ? amount : 0 };
+        }).filter(row => row.item || row.amount > 0);
+
+        if (!items.length) {
+            alert('Kam az kam ek item ya amount enter karein.');
+            return;
         }
 
-        // Optimized OCR for Pakistani Receipt Formats
-        async function runOCR() {
-            const f = document.getElementById('ocrFile');
-            const res = document.getElementById('ocrRes');
-            if(f.files.length === 0) { alert('Please select a bill image!'); return; }
-            
-            res.innerText = 'Scanning receipt & extracting amount... Please wait...';
-            try {
-                const file = f.files[0];
-                const img = new Image();
-                const reader = new FileReader();
+        const total = items.reduce((sum, row) => sum + row.amount, 0);
+        const shop = document.getElementById('ocrShop').value.trim() || 'Scanned Receipt';
+        const date = document.getElementById('ocrDate').value.trim();
+        const details = items.map(row =>
+            `${row.item || 'Item'}${row.qty ? ' | Qty: ' + row.qty : ''}${row.rate ? ' | Rate: ' + row.rate : ''} | Amount: ${row.amount}`
+        ).join('; ');
 
-                reader.onload = function(e) { img.src = e.target.result; }
-                
-                img.onload = async function() {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    
-                    // Resize for stable parsing
-                    const MAX_WIDTH = 1000;
-                    let width = img.width;
-                    let height = img.height;
-                    if (width > MAX_WIDTH) {
-                        height = Math.round((height * MAX_WIDTH) / width);
-                        width = MAX_WIDTH;
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
-                    
-                    ctx.drawImage(img, 0, 0, width, height);
+        if (!confirm(`Save ${items.length} item(s), total Rs. ${total.toLocaleString('en-PK')}? Please verify against original bill.`)) return;
 
-                    // Gentle contrast boost without destroying letters
-                    const imgData = ctx.getImageData(0, 0, width, height);
-                    const d = imgData.data;
-                    for (let i = 0; i < d.length; i += 4) {
-                        let avg = (d[i] + d[i + 1] + d[i + 2]) / 3;
-                        // Light adjustment to keep text clear
-                        let v = avg < 90 ? 0 : (avg > 200 ? 255 : avg);
-                        d[i] = v; d[i+1] = v; d[i+2] = v;
-                    }
-                    ctx.putImageData(imgData, 0, 0);
+        const bills = getStore('bills');
+        bills.push({
+            id: Date.now(),
+            customer: shop,
+            details: `OCR Bill${date ? ' | Date: ' + date : ''} | ${details}`,
+            total: String(Number(total.toFixed(2))),
+            items,
+            rawText: document.getElementById('ocrRaw').value,
+            source: 'OCR'
+        });
+        setStore('bills', bills);
+        loadBills();
+        alert('Bill Bills history mein save ho gaya.');
+        switchTab('bills');
+    }
 
-                    // Run Tesseract
-                    const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
-                    
-                    if (!text || text.trim() === '') {
-                        res.innerText = 'No text detected. Please upload a clearer photo.';
-                        return;
-                    }
+    // ---------- STARTUP ----------
+    function initApp() {
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        loadInv();
+        loadParties();
+        loadBills();
+        if (!document.querySelector('#ocrItems tr')) addOCRRow();
+    }
 
-                    // Smart extraction for Pakistani receipts (looking for Total, Grand Total, Amounts)
-                    let cleanText = text.replace(/[^\x00-\x7F]/g, " "); // remove non-ascii weird symbols
-                    let lines = cleanText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-                    
-                    let detectedTotal = '';
-                    lines.forEach(line => {
-                        let lower = line.toLowerCase();
-                        if (lower.includes('total') || lower.includes('grand') || lower.includes('rs') || lower.includes('amount') || lower.includes('cash')) {
-                            let matches = line.match(/(\d+[\d,]*\.?\d*)/g);
-                            if (matches && matches.length > 0) {
-                                detectedTotal = matches[matches.length - 1];
-                            }
-                        }
-                    });
-
-                    let outputHTML = `<strong class="text-blue-400">--- Raw Scanned Text ---</strong>\n${cleanText}\n\n`;
-                    if (detectedTotal) {
-                        outputHTML += `<strong class="text-emerald-400">--- Detected Total Amount ---</strong>\nRs. ${detectedTotal}`;
-                    } else {
-                        outputHTML += `<span class="text-yellow-400">Tip: Ensure 'Total' or 'Rs' is clearly visible in the bill photo.</span>`;
-                    }
-
-                    res.innerHTML = outputHTML;
-                }
-                reader.readAsDataURL(file);
-
-            } catch(err) { 
-                console.error(err);
-                res.innerText = 'Scan error occurred.'; 
-            }
-        }
-
-        function initApp() {
-            document.getElementById('loginSection').classList.add('hidden');
-            document.getElementById('mainApp').classList.remove('hidden');
-            loadInv(); loadParties(); loadBills();
-        }
-
-        window.onload = function() {
-            if(localStorage.getItem('isLoggedIn') === 'true') { initApp(); }
-        }
-    </script>
+    window.addEventListener('load', () => {
+        if (localStorage.getItem('isLoggedIn') === 'true') initApp();
+        if (window.lucide) lucide.createIcons();
+    });
+</script>
 </body>
 </html>
