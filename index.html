@@ -19,8 +19,9 @@
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- SheetJS (Excel Parser) -->
+    <!-- SheetJS (Excel Parser) & jsPDF for PDF Exports -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
         @media print {
@@ -34,7 +35,7 @@
                 position: absolute;
                 left: 0;
                 top: 0;
-                width: 80mm !important; /* Mobile Thermal Receipt Width */
+                width: 80mm !important;
                 margin: 0;
                 padding: 10px;
                 background: white !important;
@@ -48,6 +49,75 @@
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+
+    <!-- AUTHENTICATION & LOGIN MODAL -->
+    <div id="loginModal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-5">
+            <div class="text-center">
+                <div class="bg-blue-600 w-14 h-14 mx-auto rounded-xl flex items-center justify-center text-white text-2xl shadow-lg mb-3">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h2 class="text-xl font-bold text-white">Anwar Inventory Login</h2>
+                <p class="text-xs text-slate-400 mt-1">Default: admin / 1234</p>
+            </div>
+
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Username</label>
+                    <input type="text" id="loginUser" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" placeholder="admin">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Password</label>
+                    <input type="password" id="loginPass" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" placeholder="1234">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 rounded-lg transition-all text-sm shadow-md">
+                    Login to System
+                </button>
+            </form>
+
+            <div class="text-center pt-2 border-t border-slate-700 flex justify-between text-xs">
+                <button onclick="openForgotPasswordModal()" class="text-blue-400 hover:underline">Forgot Password?</button>
+                <button onclick="openSettingsModal()" class="text-slate-400 hover:underline">Change Credentials</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORGOT PASSWORD MODAL -->
+    <div id="forgotModal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+            <h3 class="text-lg font-bold text-white flex items-center justify-between">
+                <span>Recover Account</span>
+                <button onclick="closeForgotModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
+            </h3>
+            <p class="text-xs text-slate-400">Default recovery master password hint: Contact developer Usman Qureshi (03463997211) or enter Master Code.</p>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Enter Master Pin / Key</label>
+                <input type="password" id="masterKeyInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm" placeholder="Master Pin">
+            </div>
+            <button onclick="verifyMasterKey()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-medium">Reset to Default (admin / 1234)</button>
+        </div>
+    </div>
+
+    <!-- SETTINGS / CHANGE CREDENTIALS MODAL -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+            <h3 class="text-lg font-bold text-white flex items-center justify-between">
+                <span>Change Username & Password</span>
+                <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
+            </h3>
+            <form onsubmit="saveNewCredentials(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">New Username</label>
+                    <input type="text" id="newUsername" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">New Password</label>
+                    <input type="password" id="newPassword" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 rounded-lg text-sm">Save Credentials</button>
+            </form>
+        </div>
+    </div>
 
     <!-- Header Section -->
     <header class="bg-slate-800 border-b border-slate-700 shadow-md sticky top-0 z-40">
@@ -68,6 +138,9 @@
             <div class="flex items-center gap-3">
                 <button onclick="openCalculatorModal()" class="bg-slate-700 hover:bg-slate-600 text-amber-400 px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 transition-all">
                     <i class="fa-solid fa-calculator text-sm"></i> Calculator
+                </button>
+                <button onclick="openSettingsModal()" class="bg-slate-700 hover:bg-slate-600 text-indigo-300 px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 transition-all">
+                    <i class="fa-solid fa-user-gear text-sm"></i> Settings
                 </button>
                 <div class="bg-slate-900/80 border border-slate-700 px-4 py-2 rounded-lg text-right min-w-[200px]">
                     <div id="liveClock" class="text-xl font-mono font-semibold text-emerald-400">00:00:00 AM</div>
@@ -91,6 +164,9 @@
             </button>
             <button onclick="switchTab('tab-ledger')" id="btn-tab-ledger" class="tab-btn bg-slate-700 text-slate-300 hover:bg-slate-600 px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all">
                 <i class="fa-solid fa-book-journal-whills"></i> Total Party Ledger
+            </button>
+            <button onclick="switchTab('tab-profit')" id="btn-tab-profit" class="tab-btn bg-slate-700 text-slate-300 hover:bg-slate-600 px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all">
+                <i class="fa-solid fa-chart-line"></i> Profit & Loss Summary
             </button>
             <button onclick="switchTab('tab-excel')" id="btn-tab-excel" class="tab-btn bg-slate-700 text-slate-300 hover:bg-slate-600 px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all">
                 <i class="fa-solid fa-file-excel"></i> Excel Imports / Backup
@@ -131,12 +207,20 @@
                                     <option value="Box">Box</option>
                                     <option value="Packet">Packet</option>
                                     <option value="Ltr">Ltr</option>
+                                    <option value="Nos">Nos</option>
+                                    <option value="Bags">Bags</option>
                                 </select>
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-xs text-slate-400 mb-1">Unit Price (PKR/Rs)</label>
-                            <input type="number" id="itemPrice" required min="0" step="0.01" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 text-sm">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Purchase Price (Cost)</label>
+                                <input type="number" id="itemCost" required min="0" step="0.01" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Sale Price (PKR)</label>
+                                <input type="number" id="itemPrice" required min="0" step="0.01" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
+                            </div>
                         </div>
                         <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 rounded-lg transition-all shadow-md text-sm flex items-center justify-center gap-2">
                             <i class="fa-solid fa-save"></i> Save Item to Stock
@@ -160,8 +244,8 @@
                                     <th class="p-3">SKU</th>
                                     <th class="p-3">Item Name</th>
                                     <th class="p-3">Stock Qty</th>
-                                    <th class="p-3">Unit Price</th>
-                                    <th class="p-3">Total Value</th>
+                                    <th class="p-3">Cost Price</th>
+                                    <th class="p-3">Sale Price</th>
                                     <th class="p-3 text-center">Actions</th>
                                 </tr>
                             </thead>
@@ -185,19 +269,19 @@
                     <form id="addPartyForm" onsubmit="handleAddParty(event)" class="space-y-4">
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Party / Customer Name</label>
-                            <input type="text" id="partyName" required placeholder="e.g. Traders Co." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500 text-sm">
+                            <input type="text" id="partyName" required placeholder="e.g. Traders Co." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
                         </div>
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Phone / WhatsApp Number</label>
-                            <input type="text" id="partyPhone" placeholder="03463997211" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500 text-sm">
+                            <input type="text" id="partyPhone" placeholder="03463997211" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
                         </div>
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">City / Address</label>
-                            <input type="text" id="partyAddress" placeholder="Karachi, Pakistan" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500 text-sm">
+                            <input type="text" id="partyAddress" placeholder="Karachi, Pakistan" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
                         </div>
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Opening Balance (PKR)</label>
-                            <input type="number" id="partyBalance" step="0.01" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500 text-sm">
+                            <input type="number" id="partyBalance" step="0.01" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
                         </div>
                         <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2.5 rounded-lg transition-all shadow-md text-sm flex items-center justify-center gap-2">
                             <i class="fa-solid fa-save"></i> Save Party
@@ -232,18 +316,16 @@
 
         <!-- BLOCK 3: BILLS DATE WISE -->
         <section id="tab-bills" class="tab-content hidden space-y-6">
-            <!-- Create Bill Header & Modal Trigger -->
             <div class="flex justify-between items-center bg-slate-800 p-4 rounded-xl border border-slate-700">
                 <div>
                     <h2 class="text-lg font-bold text-white">Date-Wise Bills & Invoices</h2>
-                    <p class="text-xs text-slate-400">View, Print, Edit, Payment Status & WhatsApp Share Invoices</p>
+                    <p class="text-xs text-slate-400">View, Print, Edit, Payment Status & PDF/WhatsApp Share</p>
                 </div>
                 <button onclick="openCreateBillModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all shadow-md">
                     <i class="fa-solid fa-file-circle-plus"></i> Create New Bill
                 </button>
             </div>
 
-            <!-- Bills Table -->
             <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-lg">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm text-slate-300">
@@ -273,12 +355,15 @@
                         <h2 class="text-lg font-bold text-white flex items-center gap-2">
                             <i class="fa-solid fa-scale-balanced text-amber-500"></i> Total Party Ledger Statements
                         </h2>
-                        <p class="text-xs text-slate-400">Overall financial balance summary per customer (Paid/Unpaid tracking)</p>
+                        <p class="text-xs text-slate-400">Overall financial balance summary per customer</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <select id="ledgerPartySelect" onchange="renderLedger()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none">
+                        <select id="ledgerPartySelect" onchange="renderLedger()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
                             <option value="ALL">All Parties Summary</option>
                         </select>
+                        <button onclick="exportLedgerPDF()" class="bg-rose-600 hover:bg-rose-500 text-white px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-pdf"></i> Export PDF
+                        </button>
                     </div>
                 </div>
 
@@ -303,10 +388,27 @@
             </div>
         </section>
 
-        <!-- BLOCK 5: EXCEL IMPORTS FILE -->
+        <!-- BLOCK 5: PROFIT & LOSS SUMMARY -->
+        <section id="tab-profit" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl shadow">
+                    <p class="text-xs text-slate-400 font-semibold uppercase">Total Revenue (Sales)</p>
+                    <h3 id="totalRevenueDisplay" class="text-2xl font-bold text-emerald-400 mt-2">PKR 0.00</h3>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl shadow">
+                    <p class="text-xs text-slate-400 font-semibold uppercase">Total Cost of Goods</p>
+                    <h3 id="totalCostDisplay" class="text-2xl font-bold text-rose-400 mt-2">PKR 0.00</h3>
+                </div>
+                <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl shadow">
+                    <p class="text-xs text-slate-400 font-semibold uppercase">Net Estimated Profit</p>
+                    <h3 id="netProfitDisplay" class="text-2xl font-bold text-amber-400 mt-2">PKR 0.00</h3>
+                </div>
+            </div>
+        </section>
+
+        <!-- BLOCK 6: EXCEL IMPORTS FILE -->
         <section id="tab-excel" class="tab-content hidden space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Excel File Import Card -->
                 <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-lg">
                     <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
                         <i class="fa-solid fa-file-import text-green-500"></i> Import Inventory / Party Excel
@@ -314,7 +416,7 @@
                     <p class="text-xs text-slate-400 mb-4">Select `.xlsx` or `.csv` file to auto-populate items or parties list.</p>
 
                     <div class="space-y-4">
-                        <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer border border-slate-700 rounded-lg bg-slate-900">
+                        <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white cursor-pointer border border-slate-700 rounded-lg bg-slate-900">
                         
                         <div class="flex gap-2">
                             <button onclick="processExcelImport('items')" class="flex-1 bg-green-600 hover:bg-green-500 text-white font-medium py-2 rounded-lg text-sm transition-all flex items-center justify-center gap-2">
@@ -327,7 +429,6 @@
                     </div>
                 </div>
 
-                <!-- Backup & Reset Data Card -->
                 <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-lg">
                     <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
                         <i class="fa-solid fa-database text-purple-500"></i> Local Storage Data Management
@@ -345,15 +446,12 @@
                 </div>
             </div>
 
-            <!-- Imported Preview Table -->
             <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-lg">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-md font-bold text-white flex items-center gap-2">
                         <i class="fa-solid fa-table"></i> Recent Excel Imported Data View
                     </h3>
-                    <button onclick="printExcelPreview()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5">
-                        <i class="fa-solid fa-print"></i> Print View
-                    </button>
+                    <button onclick="printExcelPreview()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium">Print View</button>
                 </div>
                 <div id="excelPreviewContainer" class="overflow-x-auto text-xs text-slate-400">
                     <p class="italic">No file uploaded in current session yet.</p>
@@ -373,52 +471,11 @@
         </div>
     </footer>
 
-    <!-- MODAL 1: EDIT ITEM MODAL -->
-    <div id="editItemModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-md shadow-2xl">
-            <h3 class="text-lg font-bold text-white mb-4 flex items-center justify-between">
-                <span><i class="fa-solid fa-pen-to-square text-blue-500"></i> Edit Inventory Item</span>
-                <button onclick="closeEditItemModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
-            </h3>
-            <form onsubmit="saveEditedItem(event)" class="space-y-4">
-                <input type="hidden" id="editItemSKU">
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">Item Name</label>
-                    <input type="text" id="editItemName" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">Stock Qty</label>
-                        <input type="number" id="editItemQty" required min="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">Unit</label>
-                        <select id="editItemUnit" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
-                            <option value="Pcs">Pcs</option>
-                            <option value="Kg">Kg</option>
-                            <option value="Box">Box</option>
-                            <option value="Packet">Packet</option>
-                            <option value="Ltr">Ltr</option>
-                        </select>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">Unit Price (PKR)</label>
-                    <input type="number" id="editItemPrice" required min="0" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
-                </div>
-                <div class="flex gap-2 pt-2">
-                    <button type="button" onclick="closeEditItemModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2 rounded-lg text-sm">Cancel</button>
-                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded-lg text-sm">Update Item</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL 2: CREATE / EDIT BILL MODAL WITH PAYMENT OPTIONS -->
+    <!-- MODAL: CREATE / EDIT BILL -->
     <div id="billModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
         <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
             <h3 class="text-lg font-bold text-white mb-4 flex items-center justify-between">
-                <span id="billModalTitle"><i class="fa-solid fa-file-invoice text-indigo-500"></i> Create New Invoice</span>
+                <span id="billModalTitle">Create New Invoice</span>
                 <button onclick="closeBillModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
             </h3>
 
@@ -437,30 +494,27 @@
                     <label class="block text-xs text-slate-400 mb-1">Payment Status</label>
                     <select id="modalPaymentStatus" onchange="togglePaymentMethodContainer()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm font-semibold">
                         <option value="Unpaid">Unpaid (Khata)</option>
-                        <option value="Paid">Paid (Cleard)</option>
+                        <option value="Paid">Paid (Cleared)</option>
                     </select>
                 </div>
             </div>
 
-            <!-- Payment Method Container (Visible if Paid Selected) -->
             <div id="paymentMethodContainer" class="hidden bg-slate-900/80 p-3 rounded-lg border border-emerald-600/50 mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs text-emerald-400 mb-1 font-medium">Select Payment Method</label>
                     <select id="modalPaymentMethod" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
                         <option value="Cash">Cash</option>
-                        <option value="Bank Account">1. Bank Account</option>
-                        <option value="Easypaisa">2. Easypaisa</option>
-                        <option value="JazzCash">3. JazzCash</option>
-                        <option value="Cash">4. Cash</option>
+                        <option value="Bank Account">Bank Account</option>
+                        <option value="Easypaisa">Easypaisa</option>
+                        <option value="JazzCash">JazzCash</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs text-emerald-400 mb-1 font-medium">Paid Amount (PKR)</label>
-                    <input type="number" id="modalPaidAmount" step="0.01" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
+                    <input type="number" id="modalPaidAmount" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
                 </div>
             </div>
 
-            <!-- Add Item Row to Invoice -->
             <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-700/50 mb-4">
                 <h4 class="text-xs font-semibold text-slate-300 uppercase mb-2">Add Items to Bill</h4>
                 <div class="grid grid-cols-12 gap-2">
@@ -476,12 +530,11 @@
                         <input type="number" id="modalItemPrice" placeholder="Price" min="0" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white">
                     </div>
                     <div class="col-span-1">
-                        <button type="button" onclick="addItemToCurrentBill()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg py-1.5 text-xs"><i class="fa-solid fa-plus"></i></button>
+                        <button type="button" onclick="addItemToCurrentBill()" class="w-full bg-indigo-600 text-white rounded-lg py-1.5 text-xs"><i class="fa-solid fa-plus"></i></button>
                     </div>
                 </div>
             </div>
 
-            <!-- Added Items Table inside Invoice Modal -->
             <table class="w-full text-left text-xs text-slate-300 mb-4">
                 <thead class="bg-slate-900 uppercase">
                     <tr>
@@ -492,9 +545,7 @@
                         <th class="p-2 text-center">Remove</th>
                     </tr>
                 </thead>
-                <tbody id="modalBillItemsBody" class="divide-y divide-slate-700">
-                    <!-- Dynamic modal items -->
-                </tbody>
+                <tbody id="modalBillItemsBody" class="divide-y divide-slate-700"></tbody>
             </table>
 
             <div class="flex justify-between items-center pt-3 border-t border-slate-700">
@@ -502,41 +553,30 @@
                     Grand Total: PKR <span id="modalBillGrandTotal" class="text-emerald-400 text-lg">0.00</span>
                 </div>
                 <div class="flex gap-2">
-                    <button type="button" onclick="closeBillModal()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-lg text-sm">Cancel</button>
-                    <button type="button" onclick="saveInvoice()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-lg text-sm">Save Invoice</button>
+                    <button type="button" onclick="closeBillModal()" class="bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-sm">Cancel</button>
+                    <button type="button" onclick="saveInvoice()" class="bg-indigo-600 text-white font-medium px-4 py-2 rounded-lg text-sm">Save Invoice</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MODAL 3: MOBILE PRINTABLE / VIEW BILL MODAL -->
+    <!-- MODAL: VIEW & PRINT SLIP -->
     <div id="viewBillModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
         <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
             <div class="flex justify-between items-center mb-4 no-print">
                 <h3 class="text-lg font-bold text-white">Mobile Slip Preview & Print</h3>
                 <div class="flex items-center gap-2">
-                    <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5">
-                        <i class="fa-solid fa-print"></i> Print Slip
-                    </button>
-                    <button onclick="shareWhatsAppBill()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5">
-                        <i class="fa-brands fa-whatsapp"></i> WhatsApp
-                    </button>
+                    <button onclick="window.print()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium">Print</button>
+                    <button onclick="shareWhatsAppBill()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium">WhatsApp</button>
                     <button onclick="closeViewBillModal()" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-times text-lg"></i></button>
                 </div>
             </div>
 
-            <!-- Editable Store Phone inside Printable View -->
-            <div class="no-print bg-slate-900/80 p-3 rounded-lg border border-slate-700 mb-4 flex items-center justify-between text-xs text-slate-300">
-                <span>Bill Contact Number:</span>
-                <input type="text" id="storePhoneEdit" value="03463997211" oninput="updateBillStorePhone(this.value)" class="bg-slate-800 border border-slate-600 px-2 py-1 rounded text-white text-xs w-44">
-            </div>
-
-            <!-- PRINTABLE MOBILE SLIP CONTAINER (Thermal 80mm Style) -->
             <div id="printableBill" class="bg-white text-slate-900 p-4 rounded-lg shadow-xl text-xs font-mono max-w-[80mm] mx-auto">
                 <div class="text-center border-b border-dashed border-slate-400 pb-3 mb-3">
                     <h1 class="text-lg font-black uppercase text-blue-900">Anwar Inventory</h1>
                     <p class="text-[10px] text-slate-600">Wholesale & Retail Management</p>
-                    <p class="text-[10px] font-bold text-slate-700 mt-1">Contact: <span id="billStorePhoneDisplay">03463997211</span></p>
+                    <p class="text-[10px] font-bold text-slate-700 mt-1">Contact: 03463997211</p>
                 </div>
 
                 <div class="mb-3 flex justify-between items-start border-b border-dashed border-slate-400 pb-2">
@@ -553,7 +593,6 @@
                     <p class="text-[10px] text-slate-500 uppercase font-semibold">Customer:</p>
                     <h3 id="viewBillPartyName" class="font-bold text-slate-800">Party Name Here</h3>
                     <p id="viewBillPartyContact" class="text-[10px] text-slate-600">Phone: -</p>
-                    <p id="viewBillPaymentMethod" class="text-[10px] text-emerald-700 font-semibold mt-1">Via: Cash</p>
                 </div>
 
                 <table class="w-full text-left mb-3 border-collapse">
@@ -565,9 +604,7 @@
                             <th class="py-1 px-1 text-right">Total</th>
                         </tr>
                     </thead>
-                    <tbody id="viewBillItemsBody" class="divide-y divide-slate-200 text-[10px]">
-                        <!-- Invoice Items -->
-                    </tbody>
+                    <tbody id="viewBillItemsBody" class="divide-y divide-slate-200 text-[10px]"></tbody>
                 </table>
 
                 <div class="border-t border-dashed border-slate-400 pt-2 mb-4">
@@ -575,40 +612,19 @@
                         <span>Grand Total:</span>
                         <span>PKR <span id="viewBillGrandTotal">0.00</span></span>
                     </div>
-                    <div id="viewBillPaidBox" class="flex justify-between text-[10px] text-emerald-600 font-semibold mt-1">
-                        <span>Paid Amount:</span>
-                        <span>PKR <span id="viewBillPaidAmount">0.00</span></span>
-                    </div>
-                </div>
-
-                <!-- Signature / Stamp section -->
-                <div class="flex justify-between items-end pt-4 border-t border-slate-300 text-[10px]">
-                    <div class="text-center">
-                        <div class="border-b border-slate-400 w-24 mb-1 h-6"></div>
-                        <span>Customer Sign</span>
-                    </div>
-                    <div class="text-center font-bold">
-                        <div id="slipStamp" class="border-2 border-emerald-600 text-emerald-600 px-2 py-0.5 rounded rotate-[-5deg] text-xs uppercase">PAID</div>
-                        <span class="text-[8px] text-slate-400 mt-1 block">Authorized Sign</span>
-                    </div>
-                </div>
-
-                <!-- Footer branding inside print -->
-                <div class="mt-4 pt-2 border-t border-slate-200 text-center text-[9px] text-slate-500">
-                    Powered by Usman Qureshi | 03463997211
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MODAL 4: BUILT-IN CALCULATOR -->
+    <!-- CALCULATOR MODAL -->
     <div id="calculatorModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
         <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 w-full max-w-xs shadow-2xl">
             <div class="flex justify-between items-center mb-3">
-                <h3 class="text-sm font-bold text-white flex items-center gap-2"><i class="fa-solid fa-calculator text-amber-400"></i> Quick Calculator</h3>
+                <h3 class="text-sm font-bold text-white"><i class="fa-solid fa-calculator text-amber-400"></i> Quick Calculator</h3>
                 <button onclick="closeCalculatorModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
             </div>
-            <input type="text" id="calcDisplay" readonly class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-right text-xl font-mono text-emerald-400 mb-3 focus:outline-none" value="0">
+            <input type="text" id="calcDisplay" readonly class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-right text-xl font-mono text-emerald-400 mb-3" value="0">
             <div class="grid grid-cols-4 gap-2 text-sm font-semibold">
                 <button onclick="calcClear()" class="bg-rose-900/60 text-rose-300 py-2 rounded-lg">C</button>
                 <button onclick="calcPress('/')" class="bg-slate-700 text-slate-200 py-2 rounded-lg">/</button>
@@ -635,13 +651,13 @@
         </div>
     </div>
 
-    <!-- APPLICATION JAVASCRIPT SYSTEM -->
+    <!-- JAVASCRIPT LOGIC -->
     <script>
-        // Core LocalStorage Data State
         let db = {
+            auth: JSON.parse(localStorage.getItem('anwar_auth')) || { user: 'admin', pass: '1234' },
             items: JSON.parse(localStorage.getItem('anwar_items')) || [
-                { sku: 'ITM-001', name: 'Sample Item A', qty: 100, unit: 'Pcs', price: 250 },
-                { sku: 'ITM-002', name: 'Sample Item B', qty: 50, unit: 'Box', price: 1200 }
+                { sku: 'ITM-001', name: 'Sample Item A', qty: 100, unit: 'Pcs', cost: 200, price: 250 },
+                { sku: 'ITM-002', name: 'Sample Item B', qty: 50, unit: 'Box', cost: 1000, price: 1200 }
             ],
             parties: JSON.parse(localStorage.getItem('anwar_parties')) || [
                 { name: 'Default Cash Party', phone: '03463997211', address: 'Local Store', balance: 0 }
@@ -652,7 +668,61 @@
         let tempBillItems = [];
         let currentViewingBill = null;
 
-        // Save Data to LocalStorage
+        // Check Login Session
+        function checkLoginState() {
+            if (localStorage.getItem('anwar_logged_in') === 'true') {
+                document.getElementById('loginModal').classList.add('hidden');
+            }
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('loginUser').value.trim();
+            const p = document.getElementById('loginPass').value.trim();
+
+            if (u === db.auth.user && p === db.auth.pass) {
+                localStorage.setItem('anwar_logged_in', 'true');
+                document.getElementById('loginModal').classList.add('hidden');
+            } else {
+                alert('Invalid Username or Password! Default is admin / 1234');
+            }
+        }
+
+        function openForgotPasswordModal() {
+            document.getElementById('forgotModal').classList.remove('hidden');
+        }
+        function closeForgotModal() {
+            document.getElementById('forgotModal').classList.add('hidden');
+        }
+        function verifyMasterKey() {
+            const key = document.getElementById('masterKeyInput').value.trim();
+            if (key === '03463997211' || key === 'admin123') {
+                db.auth = { user: 'admin', pass: '1234' };
+                localStorage.setItem('anwar_auth', JSON.stringify(db.auth));
+                alert('Credentials reset to default: admin / 1234');
+                closeForgotModal();
+            } else {
+                alert('Invalid Master Key! Contact Usman Qureshi (03463997211)');
+            }
+        }
+
+        function openSettingsModal() {
+            document.getElementById('newUsername').value = db.auth.user;
+            document.getElementById('newPassword').value = db.auth.pass;
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+        function saveNewCredentials(e) {
+            e.preventDefault();
+            db.auth.user = document.getElementById('newUsername').value.trim();
+            db.auth.pass = document.getElementById('newPassword').value.trim();
+            localStorage.setItem('anwar_auth', JSON.stringify(db.auth));
+            alert('Credentials updated successfully!');
+            closeSettingsModal();
+        }
+
         function saveData() {
             localStorage.setItem('anwar_items', JSON.stringify(db.items));
             localStorage.setItem('anwar_parties', JSON.stringify(db.parties));
@@ -660,7 +730,6 @@
             renderAll();
         }
 
-        // Live Clock Initialization
         function updateClock() {
             const now = new Date();
             document.getElementById('liveClock').innerText = now.toLocaleTimeString();
@@ -669,7 +738,6 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // Tab Navigation Router
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -681,50 +749,36 @@
             const activeBtn = document.getElementById('btn-' + tabId);
             activeBtn.classList.remove('bg-slate-700', 'text-slate-300');
             activeBtn.classList.add('bg-blue-600', 'text-white');
+
+            if(tabId === 'tab-profit') renderProfitLoss();
         }
 
-        // --- CALCULATOR LOGIC ---
-        function openCalculatorModal() {
-            document.getElementById('calculatorModal').classList.remove('hidden');
-        }
-        function closeCalculatorModal() {
-            document.getElementById('calculatorModal').classList.add('hidden');
-        }
-        function calcClear() {
-            document.getElementById('calcDisplay').value = '0';
-        }
+        // Calculator
+        function openCalculatorModal() { document.getElementById('calculatorModal').classList.remove('hidden'); }
+        function closeCalculatorModal() { document.getElementById('calculatorModal').classList.add('hidden'); }
+        function calcClear() { document.getElementById('calcDisplay').value = '0'; }
         function calcPress(val) {
-            let display = document.getElementById('calcDisplay');
-            if (display.value === '0' || display.value === 'Error') {
-                display.value = val;
-            } else {
-                display.value += val;
-            }
+            let d = document.getElementById('calcDisplay');
+            d.value = (d.value === '0' || d.value === 'Error') ? val : d.value + val;
         }
         function calcCalculate() {
-            let display = document.getElementById('calcDisplay');
-            try {
-                display.value = eval(display.value);
-            } catch (e) {
-                display.value = 'Error';
-            }
+            try { document.getElementById('calcDisplay').value = eval(document.getElementById('calcDisplay').value); }
+            catch(e) { document.getElementById('calcDisplay').value = 'Error'; }
         }
 
-        // --- INVENTORY MANAGEMENT ---
+        // Inventory
         function handleAddItem(e) {
             e.preventDefault();
             const sku = document.getElementById('itemSKU').value.trim();
             const name = document.getElementById('itemName').value.trim();
             const qty = parseFloat(document.getElementById('itemQty').value) || 0;
             const unit = document.getElementById('itemUnit').value;
+            const cost = parseFloat(document.getElementById('itemCost').value) || 0;
             const price = parseFloat(document.getElementById('itemPrice').value) || 0;
 
-            const existingIndex = db.items.findIndex(i => i.sku.toLowerCase() === sku.toLowerCase());
-            if (existingIndex > -1) {
-                db.items[existingIndex] = { sku, name, qty, unit, price };
-            } else {
-                db.items.push({ sku, name, qty, unit, price });
-            }
+            const idx = db.items.findIndex(i => i.sku.toLowerCase() === sku.toLowerCase());
+            if (idx > -1) db.items[idx] = { sku, name, qty, unit, cost, price };
+            else db.items.push({ sku, name, qty, unit, cost, price });
 
             saveData();
             document.getElementById('addItemForm').reset();
@@ -736,69 +790,34 @@
             tbody.innerHTML = '';
 
             db.items.filter(i => i.name.toLowerCase().includes(search) || i.sku.toLowerCase().includes(search)).forEach(item => {
-                const totalValue = (item.qty * item.price).toFixed(2);
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-700/50 transition-colors";
                 tr.innerHTML = `
                     <td class="p-3 font-mono text-xs text-blue-400">${item.sku}</td>
                     <td class="p-3 font-medium text-white">${item.name}</td>
                     <td class="p-3"><span class="bg-slate-900 px-2 py-1 rounded text-xs">${item.qty} ${item.unit}</span></td>
-                    <td class="p-3">PKR ${item.price.toFixed(2)}</td>
-                    <td class="p-3 text-emerald-400 font-semibold">PKR ${totalValue}</td>
-                    <td class="p-3 text-center space-x-2">
-                        <button onclick="openEditItemModal('${item.sku}')" class="bg-blue-600/30 text-blue-400 hover:bg-blue-600 hover:text-white px-2 py-1 rounded text-xs transition-all"><i class="fa-solid fa-pen"></i> Edit</button>
-                        <button onclick="deleteItem('${item.sku}')" class="bg-rose-600/30 text-rose-400 hover:bg-rose-600 hover:text-white px-2 py-1 rounded text-xs transition-all"><i class="fa-solid fa-trash"></i></button>
+                    <td class="p-3">PKR ${(item.cost || 0).toFixed(2)}</td>
+                    <td class="p-3 text-emerald-400 font-semibold">PKR ${item.price.toFixed(2)}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="deleteItem('${item.sku}')" class="bg-rose-600/30 text-rose-400 px-2 py-1 rounded text-xs"><i class="fa-solid fa-trash"></i></button>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
         }
-
-        function openEditItemModal(sku) {
-            const item = db.items.find(i => i.sku === sku);
-            if (!item) return;
-            document.getElementById('editItemSKU').value = item.sku;
-            document.getElementById('editItemName').value = item.name;
-            document.getElementById('editItemQty').value = item.qty;
-            document.getElementById('editItemUnit').value = item.unit;
-            document.getElementById('editItemPrice').value = item.price;
-            document.getElementById('editItemModal').classList.remove('hidden');
-        }
-
-        function closeEditItemModal() {
-            document.getElementById('editItemModal').classList.add('hidden');
-        }
-
-        function saveEditedItem(e) {
-            e.preventDefault();
-            const sku = document.getElementById('editItemSKU').value;
-            const item = db.items.find(i => i.sku === sku);
-            if (item) {
-                item.name = document.getElementById('editItemName').value.trim();
-                item.qty = parseFloat(document.getElementById('editItemQty').value) || 0;
-                item.unit = document.getElementById('editItemUnit').value;
-                item.price = parseFloat(document.getElementById('editItemPrice').value) || 0;
-                saveData();
-                closeEditItemModal();
-            }
-        }
-
         function deleteItem(sku) {
-            if (confirm('Are you sure you want to delete item ' + sku + '?')) {
-                db.items = db.items.filter(i => i.sku !== sku);
-                saveData();
-            }
+            if(confirm('Delete item?')) { db.items = db.items.filter(i => i.sku !== sku); saveData(); }
         }
 
-        // --- PARTIES MANAGEMENT ---
+        // Parties
         function handleAddParty(e) {
             e.preventDefault();
-            const name = document.getElementById('partyName').value.trim();
-            const phone = document.getElementById('partyPhone').value.trim();
-            const address = document.getElementById('partyAddress').value.trim();
-            const balance = parseFloat(document.getElementById('partyBalance').value) || 0;
-
-            db.parties.push({ name, phone, address, balance });
+            db.parties.push({
+                name: document.getElementById('partyName').value.trim(),
+                phone: document.getElementById('partyPhone').value.trim(),
+                address: document.getElementById('partyAddress').value.trim(),
+                balance: parseFloat(document.getElementById('partyBalance').value) || 0
+            });
             saveData();
             document.getElementById('addPartyForm').reset();
         }
@@ -806,173 +825,80 @@
         function renderParties() {
             const tbody = document.getElementById('partyTableBody');
             tbody.innerHTML = '';
-
-            db.parties.forEach((party, index) => {
+            db.parties.forEach((party, idx) => {
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-700/50 transition-colors";
                 tr.innerHTML = `
                     <td class="p-3 font-medium text-white">${party.name}</td>
                     <td class="p-3 text-slate-400">${party.phone || '-'}</td>
                     <td class="p-3 text-slate-400">${party.address || '-'}</td>
-                    <td class="p-3 font-semibold ${party.balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}">PKR ${party.balance.toFixed(2)}</td>
-                    <td class="p-3 text-center">
-                        <button onclick="deleteParty(${index})" class="bg-rose-600/30 text-rose-400 hover:bg-rose-600 hover:text-white px-2 py-1 rounded text-xs transition-all"><i class="fa-solid fa-trash"></i></button>
-                    </td>
+                    <td class="p-3 font-semibold text-emerald-400">PKR ${party.balance.toFixed(2)}</td>
+                    <td class="p-3 text-center"><button onclick="deleteParty(${idx})" class="bg-rose-600/30 text-rose-400 px-2 py-1 rounded text-xs"><i class="fa-solid fa-trash"></i></button></td>
                 `;
                 tbody.appendChild(tr);
             });
         }
+        function deleteParty(idx) { db.parties.splice(idx, 1); saveData(); }
 
-        function deleteParty(index) {
-            if (confirm('Delete this party from registry?')) {
-                db.parties.splice(index, 1);
-                saveData();
-            }
-        }
-
-        // --- INVOICE / BILLS SYSTEM ---
+        // Bills / Invoices
         function togglePaymentMethodContainer() {
             const status = document.getElementById('modalPaymentStatus').value;
             const container = document.getElementById('paymentMethodContainer');
             if (status === 'Paid') {
                 container.classList.remove('hidden');
-                const grandTotal = tempBillItems.reduce((sum, i) => sum + i.total, 0);
-                document.getElementById('modalPaidAmount').value = grandTotal.toFixed(2);
-            } else {
-                container.classList.add('hidden');
-                document.getElementById('modalPaidAmount').value = '0';
-            }
+                document.getElementById('modalPaidAmount').value = tempBillItems.reduce((s, i) => s + i.total, 0).toFixed(2);
+            } else { container.classList.add('hidden'); }
         }
 
-        function openCreateBillModal(editBillId = null) {
+        function openCreateBillModal() {
             tempBillItems = [];
-            const partySelect = document.getElementById('modalBillParty');
-            const itemSelect = document.getElementById('modalItemSelect');
-            
-            partySelect.innerHTML = db.parties.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
-            itemSelect.innerHTML = '<option value="">Select Item...</option>' + db.items.map(i => `<option value="${i.sku}">${i.name} (Stock: ${i.qty})</option>`).join('');
-
-            if (editBillId) {
-                const bill = db.bills.find(b => b.id === editBillId);
-                if (bill) {
-                    document.getElementById('modalBillId').value = bill.id;
-                    document.getElementById('billModalTitle').innerText = 'Edit Invoice #' + bill.id;
-                    document.getElementById('modalBillParty').value = bill.partyName;
-                    document.getElementById('modalBillDate').value = bill.date;
-                    document.getElementById('modalPaymentStatus').value = bill.paymentStatus || 'Unpaid';
-                    document.getElementById('modalPaymentMethod').value = bill.paymentMethod || 'Cash';
-                    document.getElementById('modalPaidAmount').value = bill.paidAmount || 0;
-                    tempBillItems = [...bill.items];
-                }
-            } else {
-                document.getElementById('modalBillId').value = '';
-                document.getElementById('billModalTitle').innerText = 'Create New Invoice';
-                document.getElementById('modalBillDate').value = new Date().toISOString().split('T')[0];
-                document.getElementById('modalPaymentStatus').value = 'Unpaid';
-                document.getElementById('modalPaymentMethod').value = 'Cash';
-                document.getElementById('modalPaidAmount').value = '0';
-            }
-
-            togglePaymentMethodContainer();
+            document.getElementById('modalBillParty').innerHTML = db.parties.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+            document.getElementById('modalItemSelect').innerHTML = '<option value="">Select Item...</option>' + db.items.map(i => `<option value="${i.sku}">${i.name} (Stock: ${i.qty})</option>`).join('');
+            document.getElementById('modalBillDate').value = new Date().toISOString().split('T')[0];
             renderModalBillItems();
             document.getElementById('billModal').classList.remove('hidden');
         }
-
-        function closeBillModal() {
-            document.getElementById('billModal').classList.add('hidden');
-        }
+        function closeBillModal() { document.getElementById('billModal').classList.add('hidden'); }
 
         function autoFillItemPrice() {
-            const sku = document.getElementById('modalItemSelect').value;
-            const item = db.items.find(i => i.sku === sku);
-            if (item) {
-                document.getElementById('modalItemPrice').value = item.price;
-                document.getElementById('modalItemQty').value = 1;
-            }
+            const item = db.items.find(i => i.sku === document.getElementById('modalItemSelect').value);
+            if(item) { document.getElementById('modalItemPrice').value = item.price; document.getElementById('modalItemQty').value = 1; }
         }
 
         function addItemToCurrentBill() {
             const sku = document.getElementById('modalItemSelect').value;
             const qty = parseFloat(document.getElementById('modalItemQty').value) || 0;
             const price = parseFloat(document.getElementById('modalItemPrice').value) || 0;
-
-            if (!sku || qty <= 0) return alert('Select item and enter valid quantity!');
-
+            if(!sku || qty <= 0) return alert('Select item & qty');
             const item = db.items.find(i => i.sku === sku);
-            tempBillItems.push({
-                sku: item.sku,
-                name: item.name,
-                qty: qty,
-                price: price,
-                total: qty * price
-            });
-
+            tempBillItems.push({ sku: item.sku, name: item.name, cost: item.cost || 0, qty, price, total: qty * price });
             renderModalBillItems();
-            if (document.getElementById('modalPaymentStatus').value === 'Paid') {
-                const grandTotal = tempBillItems.reduce((sum, i) => sum + i.total, 0);
-                document.getElementById('modalPaidAmount').value = grandTotal.toFixed(2);
-            }
         }
 
-        function removeModalBillItem(index) {
-            tempBillItems.splice(index, 1);
-            renderModalBillItems();
-            if (document.getElementById('modalPaymentStatus').value === 'Paid') {
-                const grandTotal = tempBillItems.reduce((sum, i) => sum + i.total, 0);
-                document.getElementById('modalPaidAmount').value = grandTotal.toFixed(2);
-            }
-        }
+        function removeModalBillItem(idx) { tempBillItems.splice(idx, 1); renderModalBillItems(); }
 
         function renderModalBillItems() {
             const tbody = document.getElementById('modalBillItemsBody');
             tbody.innerHTML = '';
-            let grandTotal = 0;
-
-            tempBillItems.forEach((item, index) => {
-                grandTotal += item.total;
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="p-2">${item.name}</td>
-                    <td class="p-2">${item.qty}</td>
-                    <td class="p-2">PKR ${item.price.toFixed(2)}</td>
-                    <td class="p-2">PKR ${item.total.toFixed(2)}</td>
-                    <td class="p-2 text-center">
-                        <button onclick="removeModalBillItem(${index})" class="text-rose-400 hover:text-rose-600"><i class="fa-solid fa-times"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
+            let gt = 0;
+            tempBillItems.forEach((item, idx) => {
+                gt += item.total;
+                tbody.innerHTML += `<tr><td class="p-2">${item.name}</td><td class="p-2">${item.qty}</td><td class="p-2">${item.price}</td><td class="p-2">${item.total}</td><td class="p-2 text-center"><button onclick="removeModalBillItem(${idx})" class="text-rose-400"><i class="fa-solid fa-times"></i></button></td></tr>`;
             });
-
-            document.getElementById('modalBillGrandTotal').innerText = grandTotal.toFixed(2);
+            document.getElementById('modalBillGrandTotal').innerText = gt.toFixed(2);
         }
 
         function saveInvoice() {
-            if (tempBillItems.length === 0) return alert('Add at least 1 item to invoice!');
-
-            const editId = document.getElementById('modalBillId').value;
-            const partyName = document.getElementById('modalBillParty').value;
-            const date = document.getElementById('modalBillDate').value;
-            const paymentStatus = document.getElementById('modalPaymentStatus').value;
-            const paymentMethod = paymentStatus === 'Paid' ? document.getElementById('modalPaymentMethod').value : '-';
-            const paidAmount = paymentStatus === 'Paid' ? (parseFloat(document.getElementById('modalPaidAmount').value) || 0) : 0;
-            const grandTotal = tempBillItems.reduce((sum, i) => sum + i.total, 0);
-
-            if (editId) {
-                const billIndex = db.bills.findIndex(b => b.id === editId);
-                if (billIndex > -1) {
-                    db.bills[billIndex] = { id: editId, partyName, date, paymentStatus, paymentMethod, paidAmount, items: tempBillItems, grandTotal };
-                }
-            } else {
-                const newBillId = 'INV-' + (1000 + db.bills.length + 1);
-                db.bills.push({ id: newBillId, partyName, date, paymentStatus, paymentMethod, paidAmount, items: tempBillItems, grandTotal });
-
-                // Auto deduct stock
-                tempBillItems.forEach(bItem => {
-                    const stItem = db.items.find(i => i.sku === bItem.sku);
-                    if (stItem) stItem.qty = Math.max(0, stItem.qty - bItem.qty);
-                });
-            }
-
+            if(tempBillItems.length === 0) return alert('Add items');
+            const newId = 'INV-' + (1000 + db.bills.length + 1);
+            db.bills.push({
+                id: newId,
+                partyName: document.getElementById('modalBillParty').value,
+                date: document.getElementById('modalBillDate').value,
+                paymentStatus: document.getElementById('modalPaymentStatus').value,
+                paymentMethod: document.getElementById('modalPaymentMethod').value,
+                items: tempBillItems,
+                grandTotal: tempBillItems.reduce((s, i) => s + i.total, 0)
+            });
             saveData();
             closeBillModal();
         }
@@ -980,244 +906,120 @@
         function renderBills() {
             const tbody = document.getElementById('billsTableBody');
             tbody.innerHTML = '';
-
             db.bills.slice().reverse().forEach(bill => {
-                const isPaid = bill.paymentStatus === 'Paid';
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-700/50 transition-colors";
-                tr.innerHTML = `
-                    <td class="p-3 font-mono text-xs text-indigo-400 font-bold">${bill.id}</td>
-                    <td class="p-3 text-slate-300 text-xs">${bill.date}</td>
-                    <td class="p-3 font-medium text-white">${bill.partyName}</td>
-                    <td class="p-3 font-semibold text-emerald-400">PKR ${bill.grandTotal.toFixed(2)}</td>
-                    <td class="p-3">
-                        <span class="text-[10px] px-2.5 py-1 rounded-full font-bold uppercase ${isPaid ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-600' : 'bg-amber-900/60 text-amber-300 border border-amber-600'}">
-                            ${bill.paymentStatus || 'Unpaid'} ${isPaid ? '(' + (bill.paymentMethod || 'Cash') + ')' : ''}
-                        </span>
-                    </td>
-                    <td class="p-3 text-center space-x-1">
-                        <button onclick="viewPrintBill('${bill.id}')" class="bg-indigo-600/30 text-indigo-400 hover:bg-indigo-600 hover:text-white px-2 py-1 rounded text-xs transition-all"><i class="fa-solid fa-eye"></i> View/Print</button>
-                        <button onclick="openCreateBillModal('${bill.id}')" class="bg-blue-600/30 text-blue-400 hover:bg-blue-600 hover:text-white px-2 py-1 rounded text-xs transition-all"><i class="fa-solid fa-pen"></i> Edit</button>
-                        <button onclick="deleteBill('${bill.id}')" class="bg-rose-600/30 text-rose-400 hover:bg-rose-600 hover:text-white px-2 py-1 rounded text-xs transition-all"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-700/50">
+                        <td class="p-3 font-mono text-indigo-400 font-bold">${bill.id}</td>
+                        <td class="p-3 text-xs">${bill.date}</td>
+                        <td class="p-3 font-medium text-white">${bill.partyName}</td>
+                        <td class="p-3 font-semibold text-emerald-400">PKR ${bill.grandTotal.toFixed(2)}</td>
+                        <td class="p-3"><span class="px-2 py-1 rounded text-[10px] font-bold ${bill.paymentStatus === 'Paid' ? 'bg-emerald-900 text-emerald-300' : 'bg-amber-900 text-amber-300'}">${bill.paymentStatus}</span></td>
+                        <td class="p-3 text-center space-x-1">
+                            <button onclick="viewPrintBill('${bill.id}')" class="bg-indigo-600/30 text-indigo-300 px-2 py-1 rounded text-xs">View/Print</button>
+                            <button onclick="deleteBill('${bill.id}')" class="bg-rose-600/30 text-rose-300 px-2 py-1 rounded text-xs"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>`;
             });
         }
-
-        function deleteBill(id) {
-            if (confirm('Delete Invoice ' + id + '?')) {
-                db.bills = db.bills.filter(b => b.id !== id);
-                saveData();
-            }
-        }
+        function deleteBill(id) { db.bills = db.bills.filter(b => b.id !== id); saveData(); }
 
         function viewPrintBill(id) {
-            const bill = db.bills.find(b => b.id === id);
-            if (!bill) return;
-            currentViewingBill = bill;
-
-            const party = db.parties.find(p => p.name === bill.partyName) || { phone: '-' };
-            const isPaid = bill.paymentStatus === 'Paid';
-
-            document.getElementById('viewBillNumber').innerText = bill.id;
-            document.getElementById('viewBillDate').innerText = bill.date;
-            document.getElementById('viewBillPartyName').innerText = bill.partyName;
-            document.getElementById('viewBillPartyContact').innerText = 'Phone: ' + (party.phone || '-');
-            document.getElementById('viewBillGrandTotal').innerText = bill.grandTotal.toFixed(2);
-            document.getElementById('viewBillPaidAmount').innerText = (bill.paidAmount || 0).toFixed(2);
-
-            // Badge & Stamp configuration
-            const badge = document.getElementById('viewBillStatusBadge');
-            const stamp = document.getElementById('slipStamp');
-            const paymentMethodText = document.getElementById('viewBillPaymentMethod');
-            const paidBox = document.getElementById('viewBillPaidBox');
-
-            if (isPaid) {
-                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300";
-                badge.innerText = "PAID";
-                stamp.innerText = "PAID";
-                stamp.className = "border-2 border-emerald-600 text-emerald-600 px-2 py-0.5 rounded rotate-[-5deg] text-xs uppercase font-bold";
-                paymentMethodText.innerText = `Payment Mode: ${bill.paymentMethod || 'Cash'}`;
-                paymentMethodText.classList.remove('hidden');
-                paidBox.classList.remove('hidden');
-            } else {
-                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-100 text-amber-800 border border-amber-300";
-                badge.innerText = "UNPAID";
-                stamp.innerText = "UNPAID";
-                stamp.className = "border-2 border-amber-600 text-amber-600 px-2 py-0.5 rounded rotate-[-5deg] text-xs uppercase font-bold";
-                paymentMethodText.innerText = "Payment Mode: Khata / Credit";
-                paymentMethodText.classList.remove('hidden');
-                paidBox.classList.add('hidden');
-            }
-
-            const tbody = document.getElementById('viewBillItemsBody');
-            tbody.innerHTML = '';
-            bill.items.forEach((item, index) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="py-1 px-1">${item.name}</td>
-                    <td class="py-1 px-1 text-right">${item.qty}</td>
-                    <td class="py-1 px-1 text-right">${item.price.toFixed(2)}</td>
-                    <td class="py-1 px-1 text-right">${item.total.toFixed(2)}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-
+            const b = db.bills.find(x => x.id === id);
+            if(!b) return;
+            currentViewingBill = b;
+            document.getElementById('viewBillNumber').innerText = b.id;
+            document.getElementById('viewBillDate').innerText = b.date;
+            document.getElementById('viewBillPartyName').innerText = b.partyName;
+            document.getElementById('viewBillGrandTotal').innerText = b.grandTotal.toFixed(2);
+            document.getElementById('viewBillItemsBody').innerHTML = b.items.map(i => `<tr><td class="py-1">${i.name}</td><td class="text-right">${i.qty}</td><td class="text-right">${i.price}</td><td class="text-right">${i.total}</td></tr>`).join('');
             document.getElementById('viewBillModal').classList.remove('hidden');
         }
-
-        function closeViewBillModal() {
-            document.getElementById('viewBillModal').classList.add('hidden');
-        }
-
-        function updateBillStorePhone(val) {
-            document.getElementById('billStorePhoneDisplay').innerText = val || '03463997211';
-        }
+        function closeViewBillModal() { document.getElementById('viewBillModal').classList.add('hidden'); }
 
         function shareWhatsAppBill() {
-            if (!currentViewingBill) return;
-            const party = db.parties.find(p => p.name === currentViewingBill.partyName) || {};
-            let phone = (party.phone || '').replace(/[^0-9]/g, '');
-            if (!phone) phone = '923463997211';
-
-            let msg = `*ANWAR INVENTORY - INVOICE*\n`;
-            msg += `Invoice #: ${currentViewingBill.id}\nDate: ${currentViewingBill.date}\nParty: ${currentViewingBill.partyName}\n`;
-            msg += `Status: *${currentViewingBill.paymentStatus || 'Unpaid'}* ${currentViewingBill.paymentStatus === 'Paid' ? '(' + currentViewingBill.paymentMethod + ')' : ''}\n\n`;
-            currentViewingBill.items.forEach((i, idx) => {
-                msg += `${idx+1}. ${i.name} - ${i.qty} x ${i.price} = PKR ${i.total}\n`;
-            });
-            msg += `\n*Grand Total: PKR ${currentViewingBill.grandTotal}*\n`;
-            if (currentViewingBill.paymentStatus === 'Paid') {
-                msg += `Paid Amount: PKR ${currentViewingBill.paidAmount}\n`;
-            }
-            msg += `\nPowered by Usman Qureshi (03463997211)`;
-
-            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+            if(!currentViewingBill) return;
+            let msg = `*ANWAR INVENTORY BILL*\nBill #: ${currentViewingBill.id}\nParty: ${currentViewingBill.partyName}\nTotal: PKR ${currentViewingBill.grandTotal}\nPowered by Usman Qureshi (03463997211)`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
-        // --- TOTAL PARTY LEDGER ---
+        // Ledger & PDF Export
         function renderLedger() {
             const tbody = document.getElementById('ledgerTableBody');
-            const partySelect = document.getElementById('ledgerPartySelect');
-            const selectedParty = partySelect.value;
-            
-            // Sync Ledger Select Options
-            partySelect.innerHTML = '<option value="ALL">All Parties Summary</option>' + db.parties.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
-            partySelect.value = selectedParty;
-
             tbody.innerHTML = '';
-
-            db.parties.forEach(party => {
-                if (selectedParty !== 'ALL' && party.name !== selectedParty) return;
-
-                const partyBills = db.bills.filter(b => b.partyName === party.name);
-                const totalBilled = partyBills.reduce((sum, b) => sum + b.grandTotal, 0);
-                const totalPaid = partyBills.reduce((sum, b) => sum + (b.paymentStatus === 'Paid' ? (b.paidAmount || b.grandTotal) : 0), 0);
-                const currentBalance = party.balance + totalBilled - totalPaid;
-
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-700/50 transition-colors";
-                tr.innerHTML = `
-                    <td class="p-3 font-medium text-white">${party.name}</td>
-                    <td class="p-3 text-slate-400">${party.phone || '-'}</td>
-                    <td class="p-3"><span class="bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded text-xs">${partyBills.length} Bills</span></td>
-                    <td class="p-3">PKR ${totalBilled.toFixed(2)}</td>
-                    <td class="p-3 text-emerald-400">PKR ${totalPaid.toFixed(2)}</td>
-                    <td class="p-3 font-bold ${currentBalance > 0 ? 'text-amber-400' : 'text-emerald-400'}">PKR ${currentBalance.toFixed(2)}</td>
-                    <td class="p-3 text-center">
-                        <span class="text-[10px] px-2 py-0.5 rounded border ${currentBalance > 0 ? 'bg-amber-900/30 text-amber-300 border-amber-700' : 'bg-emerald-900/30 text-emerald-300 border-emerald-700'}">
-                            ${currentBalance > 0 ? 'Unpaid Balance' : 'Account Clear'}
-                        </span>
-                    </td>
-                `;
-                tbody.appendChild(tr);
+            db.parties.forEach(p => {
+                const pBills = db.bills.filter(b => b.partyName === p.name);
+                const billed = pBills.reduce((s, b) => s + b.grandTotal, 0);
+                const paid = pBills.reduce((s, b) => s + (b.paymentStatus === 'Paid' ? b.grandTotal : 0), 0);
+                const bal = p.balance + billed - paid;
+                tbody.innerHTML += `<tr class="hover:bg-slate-700/50"><td class="p-3 text-white">${p.name}</td><td class="p-3">${p.phone || '-'}</td><td class="p-3">${pBills.length}</td><td class="p-3">${billed}</td><td class="p-3 text-emerald-400">${paid}</td><td class="p-3 font-bold ${bal > 0 ? 'text-amber-400' : 'text-emerald-400'}">${bal}</td><td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-xs border ${bal > 0 ? 'border-amber-600 text-amber-300' : 'border-emerald-600 text-emerald-300'}">${bal > 0 ? 'Unpaid' : 'Clear'}</span></td></tr>`;
             });
         }
 
-        // --- EXCEL IMPORTS & BACKUP ---
+        function exportLedgerPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Anwar Inventory - Total Party Ledger", 14, 20);
+            let y = 30;
+            db.parties.forEach(p => {
+                doc.text(`Party: ${p.name} | Balance: PKR ${p.balance}`, 14, y);
+                y += 10;
+            });
+            doc.save("Anwar_Ledger_Statement.pdf");
+        }
+
+        // Profit & Loss Summary
+        function renderProfitLoss() {
+            let totalRev = 0, totalCost = 0;
+            db.bills.forEach(b => {
+                totalRev += b.grandTotal;
+                b.items.forEach(i => {
+                    totalCost += (i.cost || 0) * i.qty;
+                });
+            });
+            document.getElementById('totalRevenueDisplay').innerText = `PKR ${totalRev.toFixed(2)}`;
+            document.getElementById('totalCostDisplay').innerText = `PKR ${totalCost.toFixed(2)}`;
+            document.getElementById('netProfitDisplay').innerText = `PKR ${(totalRev - totalCost).toFixed(2)}`;
+        }
+
+        // Excel Imports
         function processExcelImport(type) {
-            const fileInput = document.getElementById('excelFileInput');
-            if (!fileInput.files.length) return alert('Please select an Excel file first!');
-
-            const file = fileInput.files[0];
+            const file = document.getElementById('excelFileInput').files[0];
+            if(!file) return alert('Select file');
             const reader = new FileReader();
-
             reader.onload = function(e) {
                 const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-
-                if (type === 'items') {
-                    jsonData.forEach(row => {
+                const wb = XLSX.read(data, {type: 'array'});
+                const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                if(type === 'items') {
+                    json.forEach(row => {
                         db.items.push({
-                            sku: row.SKU || row.Code || ('EX-' + Math.floor(Math.random()*1000)),
-                            name: row.ItemName || row.Name || 'Imported Item',
-                            qty: parseFloat(row.Qty || row.Quantity) || 0,
-                            unit: row.Unit || 'Pcs',
-                            price: parseFloat(row.Price || row.UnitPrice) || 0
+                            sku: String(row.SKU || row.Code || 'EX-' + Math.floor(Math.random()*1000)),
+                            name: String(row.ItemName || row.Name || 'Item'),
+                            qty: parseFloat(row.Qty || row.Quantity) || 1,
+                            unit: String(row.Unit || 'Pcs'),
+                            cost: parseFloat(row.Cost || 0),
+                            price: parseFloat(row.Price || row.Rate) || 0
                         });
                     });
-                    alert('Items auto-imported successfully!');
-                } else if (type === 'parties') {
-                    jsonData.forEach(row => {
-                        db.parties.push({
-                            name: row.PartyName || row.Name || 'Imported Party',
-                            phone: String(row.Phone || row.Contact || ''),
-                            address: row.Address || row.City || '',
-                            balance: parseFloat(row.Balance) || 0
-                        });
-                    });
-                    alert('Parties auto-imported successfully!');
+                    alert('Items imported successfully!');
                 }
-
                 saveData();
-                renderExcelPreview(jsonData);
             };
-
             reader.readAsArrayBuffer(file);
         }
 
-        function renderExcelPreview(data) {
-            const container = document.getElementById('excelPreviewContainer');
-            if (!data || !data.length) return;
-
-            let html = '<table class="w-full text-left border-collapse"><thead class="bg-slate-900 border-b border-slate-700"><tr>';
-            Object.keys(data[0]).forEach(k => html += `<th class="p-2">${k}</th>`);
-            html += '</tr></thead><tbody>';
-
-            data.slice(0, 10).forEach(row => {
-                html += '<tr class="border-b border-slate-700/50">';
-                Object.values(row).forEach(v => html += `<td class="p-2">${v}</td>`);
-                html += '</tr>';
-            });
-            html += '</tbody></table>';
-
-            container.innerHTML = html;
-        }
-
-        function printExcelPreview() {
-            window.print();
-        }
-
         function exportFullJSONBackup() {
-            const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
+            const blob = new Blob([JSON.stringify(db, null, 2)], {type: 'application/json'});
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `Anwar_Inventory_Backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.href = URL.createObjectURL(blob);
+            a.download = `Anwar_Backup_${new Date().toISOString().split('T')[0]}.json`;
             a.click();
         }
 
         function clearAllData() {
-            if (confirm('WARNING: Are you sure you want to delete ALL inventory, bills and party data?')) {
-                localStorage.clear();
-                location.reload();
-            }
+            if(confirm('Reset all data?')) { localStorage.clear(); location.reload(); }
         }
 
-        // Global Render Trigger
         function renderAll() {
             renderInventory();
             renderParties();
@@ -1225,7 +1027,7 @@
             renderLedger();
         }
 
-        // Initialize Application
+        checkLoginState();
         renderAll();
     </script>
 </body>
