@@ -1,3 +1,7 @@
+Aap ki requirement ke mutabiq app me ye naye features shamil kar diye gaye hain:
+ * Quantity Filter / Multiplier Buttons (2, 3, 4, 5): "Add Items to Bill" wale section ke paas quick quantity buttons (1, 2, 3, 4, 5) de diye gaye hain taake aap ek click par quantity set kar sakein.
+ * Edit Option in Bill Items: Jab aap bill me koi item add kar lete hain, toh table me ab Edit ka option bhi mil jayega jisse aap kisi bhi added item ki quantity ya price modify kar sakein.
+Yeh raha aap ka complete updated code:
 <!DOCTYPE html>
 <html lang="ur" dir="ltr">
 <head>
@@ -490,8 +494,20 @@
                 </div>
             </div>
 
-            <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-700/50 mb-4">
-                <h4 class="text-xs font-semibold text-slate-300 uppercase mb-2">Add Items to Bill</h4>
+            <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-700/50 mb-4 space-y-2">
+                <div class="flex justify-between items-center">
+                    <h4 class="text-xs font-semibold text-slate-300 uppercase">Add Items to Bill</h4>
+                    <!-- Quantity Quick Filter Buttons (2, 3, 4, 5) -->
+                    <div class="flex items-center gap-1">
+                        <span class="text-[10px] text-slate-400 mr-1">Qty Filter:</span>
+                        <button type="button" onclick="setQtyFilter(1)" class="bg-slate-700 hover:bg-blue-600 text-white px-2 py-0.5 rounded text-xs font-bold">1</button>
+                        <button type="button" onclick="setQtyFilter(2)" class="bg-slate-700 hover:bg-blue-600 text-white px-2 py-0.5 rounded text-xs font-bold">2</button>
+                        <button type="button" onclick="setQtyFilter(3)" class="bg-slate-700 hover:bg-blue-600 text-white px-2 py-0.5 rounded text-xs font-bold">3</button>
+                        <button type="button" onclick="setQtyFilter(4)" class="bg-slate-700 hover:bg-blue-600 text-white px-2 py-0.5 rounded text-xs font-bold">4</button>
+                        <button type="button" onclick="setQtyFilter(5)" class="bg-slate-700 hover:bg-blue-600 text-white px-2 py-0.5 rounded text-xs font-bold">5</button>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-12 gap-2">
                     <div class="col-span-5">
                         <select id="modalItemSelect" onchange="autoFillItemPrice()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white">
@@ -505,7 +521,7 @@
                         <input type="number" id="modalItemPrice" placeholder="Price" min="0" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white">
                     </div>
                     <div class="col-span-1">
-                        <button type="button" onclick="addItemToCurrentBill()" class="w-full bg-indigo-600 text-white rounded-lg py-1.5 text-xs font-bold" title="Add Selected / All Items"><i class="fa-solid fa-plus"></i></button>
+                        <button type="button" onclick="addItemToCurrentBill()" class="w-full bg-indigo-600 text-white rounded-lg py-1.5 text-xs font-bold" title="Add Item"><i class="fa-solid fa-plus"></i></button>
                     </div>
                 </div>
             </div>
@@ -517,7 +533,7 @@
                         <th class="p-2">Qty</th>
                         <th class="p-2">Price</th>
                         <th class="p-2">Total</th>
-                        <th class="p-2 text-center">Remove</th>
+                        <th class="p-2 text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="modalBillItemsBody" class="divide-y divide-slate-700"></tbody>
@@ -639,13 +655,11 @@
             bills: JSON.parse(localStorage.getItem('anwar_bills')) || []
         };
 
-        // Get saved auth or set default
         let systemAuth = JSON.parse(localStorage.getItem('anwar_auth')) || { user: 'admin', pass: '1234' };
 
         let tempBillItems = [];
         let currentViewingBill = null;
 
-        // Dynamic Login Handling
         function handleLogin(e) {
             e.preventDefault();
             const u = document.getElementById('loginUser').value.trim();
@@ -671,7 +685,6 @@
             }
         }
 
-        // Change Credentials Logic
         function openChangeAuthModal() {
             document.getElementById('newUsernameInput').value = systemAuth.user;
             document.getElementById('newPasswordInput').value = systemAuth.pass;
@@ -742,7 +755,6 @@
             activeBtn.classList.add('bg-blue-600', 'text-white');
         }
 
-        // Calculator
         function openCalculatorModal() { document.getElementById('calculatorModal').classList.remove('hidden'); }
         function closeCalculatorModal() { document.getElementById('calculatorModal').classList.add('hidden'); }
         function calcClear() { document.getElementById('calcDisplay').value = '0'; }
@@ -755,7 +767,6 @@
             catch(e) { document.getElementById('calcDisplay').value = 'Error'; }
         }
 
-        // Inventory: Add & Edit Logic
         function handleAddItem(e) {
             e.preventDefault();
             const editingSKU = document.getElementById('editingItemSKU').value;
@@ -829,7 +840,6 @@
             if(confirm('Delete item?')) { db.items = db.items.filter(i => i.sku !== sku); saveData(); }
         }
 
-        // Parties
         function handleAddParty(e) {
             e.preventDefault();
             db.parties.push({
@@ -859,7 +869,6 @@
         }
         function deleteParty(idx) { db.parties.splice(idx, 1); saveData(); }
 
-        // Bills / Invoices
         function togglePaymentMethodContainer() {
             const status = document.getElementById('modalPaymentStatus').value;
             const container = document.getElementById('paymentMethodContainer');
@@ -872,8 +881,6 @@
         function openCreateBillModal() {
             tempBillItems = [];
             document.getElementById('modalBillParty').innerHTML = db.parties.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
-            
-            // Added Select All Items option
             document.getElementById('modalItemSelect').innerHTML = `
                 <option value="">Select Item...</option>
                 <option value="ALL_ITEMS" class="font-bold text-amber-400">⚡ SELECT ALL ITEMS (AUTO FILL)</option>
@@ -885,6 +892,10 @@
         }
         function closeBillModal() { document.getElementById('billModal').classList.add('hidden'); }
 
+        function setQtyFilter(val) {
+            document.getElementById('modalItemQty').value = val;
+        }
+
         function autoFillItemPrice() {
             const val = document.getElementById('modalItemSelect').value;
             if (val === 'ALL_ITEMS') {
@@ -893,14 +904,18 @@
                 return;
             }
             const item = db.items.find(i => i.sku === val);
-            if(item) { document.getElementById('modalItemPrice').value = item.price; document.getElementById('modalItemQty').value = 1; }
+            if(item) { 
+                document.getElementById('modalItemPrice').value = item.price; 
+                if(!document.getElementById('modalItemQty').value) {
+                    document.getElementById('modalItemQty').value = 1; 
+                }
+            }
         }
 
         function addItemToCurrentBill() {
             const sku = document.getElementById('modalItemSelect').value;
             if(!sku) return alert('Select item');
 
-            // Select All Items Feature
             if (sku === 'ALL_ITEMS') {
                 if(db.items.length === 0) return alert('No stock items available in inventory!');
                 db.items.forEach(item => {
@@ -920,13 +935,32 @@
 
         function removeModalBillItem(idx) { tempBillItems.splice(idx, 1); renderModalBillItems(); }
 
+        function editModalBillItem(idx) {
+            const item = tempBillItems[idx];
+            document.getElementById('modalItemSelect').value = item.sku;
+            document.getElementById('modalItemQty').value = item.qty;
+            document.getElementById('modalItemPrice').value = item.price;
+            tempBillItems.splice(idx, 1);
+            renderModalBillItems();
+        }
+
         function renderModalBillItems() {
             const tbody = document.getElementById('modalBillItemsBody');
             tbody.innerHTML = '';
             let gt = 0;
             tempBillItems.forEach((item, idx) => {
                 gt += item.total;
-                tbody.innerHTML += `<tr><td class="p-2">${item.name}</td><td class="p-2">${item.qty}</td><td class="p-2">${item.price}</td><td class="p-2">${item.total}</td><td class="p-2 text-center"><button onclick="removeModalBillItem(${idx})" class="text-rose-400"><i class="fa-solid fa-times"></i></button></td></tr>`;
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-2">${item.name}</td>
+                        <td class="p-2">${item.qty}</td>
+                        <td class="p-2">${item.price}</td>
+                        <td class="p-2">${item.total}</td>
+                        <td class="p-2 text-center space-x-1">
+                            <button type="button" onclick="editModalBillItem(${idx})" class="text-amber-400" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                            <button type="button" onclick="removeModalBillItem(${idx})" class="text-rose-400" title="Remove"><i class="fa-solid fa-times"></i></button>
+                        </td>
+                    </tr>`;
             });
             document.getElementById('modalBillGrandTotal').innerText = gt.toFixed(2);
         }
@@ -986,7 +1020,6 @@
             window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
-        // Ledger & PDF Export
         function renderLedger() {
             const tbody = document.getElementById('ledgerTableBody');
             tbody.innerHTML = '';
@@ -1011,7 +1044,6 @@
             doc.save("Anwar_Ledger_Statement.pdf");
         }
 
-        // Smart Excel Parsing with Quantity + Unit split
         function processExcelImport(type) {
             const file = document.getElementById('excelFileInput').files[0];
             if(!file) return alert('Select file');
@@ -1076,3 +1108,4 @@
     </script>
 </body>
 </html>
+
