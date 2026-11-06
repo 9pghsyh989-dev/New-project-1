@@ -19,32 +19,14 @@
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- SheetJS (Excel Parser) & jsPDF for PDF Exports -->
+    <!-- SheetJS (Excel Parser), jsPDF & html2canvas for Image Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
-        @media print {
-            body * {
-                visibility: hidden;
-            }
-            #printableBill, #printableBill * {
-                visibility: visible;
-            }
-            #printableBill {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 80mm !important;
-                margin: 0;
-                padding: 10px;
-                background: white !important;
-                color: black !important;
-                box-shadow: none !important;
-            }
-            .no-print {
-                display: none !important;
-            }
+        .no-print {
+            display: flex !important;
         }
     </style>
 </head>
@@ -312,7 +294,7 @@
             <div class="flex justify-between items-center bg-slate-800 p-4 rounded-xl border border-slate-700">
                 <div>
                     <h2 class="text-lg font-bold text-white">Date-Wise Bills & Invoices</h2>
-                    <p class="text-xs text-slate-400">View, Print, Edit, Payment Status & PDF/WhatsApp Share</p>
+                    <p class="text-xs text-slate-400">View, WhatsApp Image Share, Edit & Payment Status</p>
                 </div>
                 <button onclick="openCreateBillModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all shadow-md">
                     <i class="fa-solid fa-file-circle-plus"></i> Create New Bill
@@ -493,7 +475,6 @@
             <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-700/50 mb-4 space-y-2">
                 <div class="flex justify-between items-center">
                     <h4 class="text-xs font-semibold text-slate-300 uppercase">Add Items to Bill</h4>
-                    <!-- Quantity Quick Filter Buttons (1, 2, 3, 4, 5) -->
                     <div class="flex items-center gap-1">
                         <span class="text-[10px] text-slate-400 mr-1">Qty Filter:</span>
                         <button type="button" onclick="setQtyFilter(1)" class="bg-slate-700 hover:bg-blue-600 text-white px-2 py-0.5 rounded text-xs font-bold">1</button>
@@ -550,19 +531,20 @@
         </div>
     </div>
 
-    <!-- MODAL: VIEW & PRINT SLIP -->
+    <!-- MODAL: VIEW & SHARE BILL IMAGE -->
     <div id="viewBillModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
         <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div class="flex justify-between items-center mb-4 no-print">
-                <h3 class="text-lg font-bold text-white">Mobile Slip Preview & Print</h3>
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-white">Bill Image Share</h3>
                 <div class="flex items-center gap-2">
-                    <button onclick="window.print()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium">Print</button>
-                    <button onclick="shareWhatsAppBill()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium">WhatsApp</button>
+                    <button onclick="generateAndShareBillImage()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-md">
+                        <i class="fa-brands fa-whatsapp text-sm"></i> Share WhatsApp Image
+                    </button>
                     <button onclick="closeViewBillModal()" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-times text-lg"></i></button>
                 </div>
             </div>
 
-            <div id="printableBill" class="bg-white text-slate-900 p-4 rounded-lg shadow-xl text-xs font-mono max-w-[80mm] mx-auto">
+            <div id="printableBill" class="bg-white text-slate-900 p-5 rounded-lg shadow-xl text-xs font-mono max-w-[80mm] mx-auto">
                 <div class="text-center border-b border-dashed border-slate-400 pb-3 mb-3">
                     <h1 class="text-lg font-black uppercase text-blue-900">Anwar Inventory</h1>
                     <p class="text-[10px] text-slate-600">Wholesale & Retail Management</p>
@@ -602,6 +584,10 @@
                         <span>Grand Total:</span>
                         <span>PKR <span id="viewBillGrandTotal">0.00</span></span>
                     </div>
+                </div>
+
+                <div class="text-center pt-2 border-t border-dashed border-slate-300 text-[9px] text-slate-500">
+                    Thank you for your business!
                 </div>
             </div>
         </div>
@@ -949,7 +935,6 @@
 
         function removeModalBillItem(idx) { tempBillItems.splice(idx, 1); renderModalBillItems(); }
 
-        // Excel-like inline update function for bill table rows
         function updateBillItemInline(idx, field, value) {
             const val = parseFloat(value) || 0;
             if (field === 'qty') {
@@ -959,7 +944,6 @@
             }
             tempBillItems[idx].total = tempBillItems[idx].qty * tempBillItems[idx].price;
             
-            // Update total display directly without losing focus
             let gt = 0;
             tempBillItems.forEach((item, i) => {
                 gt += item.total;
@@ -1021,7 +1005,7 @@
                         <td class="p-3 font-semibold text-emerald-400">PKR ${bill.grandTotal.toFixed(2)}</td>
                         <td class="p-3"><span class="px-2 py-1 rounded text-[10px] font-bold ${bill.paymentStatus === 'Paid' ? 'bg-emerald-900 text-emerald-300' : 'bg-amber-900 text-amber-300'}">${bill.paymentStatus}</span></td>
                         <td class="p-3 text-center space-x-1">
-                            <button onclick="viewPrintBill('${bill.id}')" class="bg-indigo-600/30 text-indigo-300 px-2 py-1 rounded text-xs">View/Print</button>
+                            <button onclick="viewPrintBill('${bill.id}')" class="bg-indigo-600/30 text-indigo-300 px-2 py-1 rounded text-xs">View/Share</button>
                             <button onclick="deleteBill('${bill.id}')" class="bg-rose-600/30 text-rose-300 px-2 py-1 rounded text-xs"><i class="fa-solid fa-trash"></i></button>
                         </td>
                     </tr>`;
@@ -1042,10 +1026,38 @@
         }
         function closeViewBillModal() { document.getElementById('viewBillModal').classList.add('hidden'); }
 
-        function shareWhatsAppBill() {
-            if(!currentViewingBill) return;
-            let msg = `*ANWAR INVENTORY BILL*\nBill #: ${currentViewingBill.id}\nParty: ${currentViewingBill.partyName}\nTotal: PKR ${currentViewingBill.grandTotal}\nPowered by Usman Qureshi (03463997211)`;
-            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+        // Direct Bill Image Generation & WhatsApp Share
+        async function generateAndShareBillImage() {
+            const element = document.getElementById('printableBill');
+            try {
+                const canvas = await html2canvas(element, { scale: 2 });
+                canvas.toBlob(async function(blob) {
+                    const file = new File([blob], `Bill_${currentViewingBill.id}.png`, { type: 'image/png' });
+                    
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        try {
+                            await navigator.share({
+                                files: [file],
+                                title: `Bill #${currentViewingBill.id}`,
+                                text: `Invoice #${currentViewingBill.id} from Anwar Inventory. Total: PKR ${currentViewingBill.grandTotal}`
+                            });
+                        } catch (err) {
+                            console.log('Share canceled or failed', err);
+                        }
+                    } else {
+                        // Fallback download image & open WhatsApp text
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = `Bill_${currentViewingBill.id}.png`;
+                        link.click();
+                        
+                        let msg = `*ANWAR INVENTORY BILL*\nBill #: ${currentViewingBill.id}\nParty: ${currentViewingBill.partyName}\nTotal: PKR ${currentViewingBill.grandTotal}\nPowered by Usman Qureshi (03463997211)`;
+                        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+                    }
+                });
+            } catch (error) {
+                alert('Image generation failed!');
+            }
         }
 
         function renderLedger() {
