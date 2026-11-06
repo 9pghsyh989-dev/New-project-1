@@ -448,7 +448,7 @@
 
     <!-- MODAL: CREATE / EDIT BILL -->
     <div id="billModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
             <h3 class="text-lg font-bold text-white mb-4 flex items-center justify-between">
                 <span id="billModalTitle">Create New Invoice</span>
                 <button onclick="closeBillModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
@@ -522,18 +522,21 @@
                 </div>
             </div>
 
-            <table class="w-full text-left text-xs text-slate-300 mb-4">
-                <thead class="bg-slate-900 uppercase">
-                    <tr>
-                        <th class="p-2">Item</th>
-                        <th class="p-2">Qty</th>
-                        <th class="p-2">Price</th>
-                        <th class="p-2">Total</th>
-                        <th class="p-2 text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="modalBillItemsBody" class="divide-y divide-slate-700"></tbody>
-            </table>
+            <!-- Excel-like Direct Editable Bill Items Table -->
+            <div class="overflow-x-auto mb-4">
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead class="bg-slate-900 uppercase">
+                        <tr>
+                            <th class="p-2">Item Name</th>
+                            <th class="p-2 w-24">Qty (Edit)</th>
+                            <th class="p-2 w-32">Price (Edit)</th>
+                            <th class="p-2">Total Amount</th>
+                            <th class="p-2 text-center w-16">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalBillItemsBody" class="divide-y divide-slate-700"></tbody>
+                </table>
+            </div>
 
             <div class="flex justify-between items-center pt-3 border-t border-slate-700">
                 <div class="text-sm font-bold text-slate-200">
@@ -915,7 +918,13 @@
             if (sku === 'ALL_ITEMS') {
                 if(db.items.length === 0) return alert('No stock items available in inventory!');
                 db.items.forEach(item => {
-                    tempBillItems.push({ sku: item.sku, name: item.name, qty: 1, price: item.price, total: 1 * item.price });
+                    const existingIndex = tempBillItems.findIndex(i => i.sku === item.sku);
+                    if (existingIndex > -1) {
+                        tempBillItems[existingIndex].qty += 1;
+                        tempBillItems[existingIndex].total = tempBillItems[existingIndex].qty * tempBillItems[existingIndex].price;
+                    } else {
+                        tempBillItems.push({ sku: item.sku, name: item.name, qty: 1, price: item.price, total: 1 * item.price });
+                    }
                 });
                 renderModalBillItems();
                 return;
@@ -925,19 +934,39 @@
             const price = parseFloat(document.getElementById('modalItemPrice').value) || 0;
             if(qty <= 0) return alert('Select qty');
             const item = db.items.find(i => i.sku === sku);
-            tempBillItems.push({ sku: item.sku, name: item.name, qty, price, total: qty * price });
+
+            const existingIndex = tempBillItems.findIndex(i => i.sku === sku);
+            if (existingIndex > -1) {
+                tempBillItems[existingIndex].qty += qty;
+                tempBillItems[existingIndex].price = price;
+                tempBillItems[existingIndex].total = tempBillItems[existingIndex].qty * price;
+            } else {
+                tempBillItems.push({ sku: item.sku, name: item.name, qty, price, total: qty * price });
+            }
+
             renderModalBillItems();
         }
 
         function removeModalBillItem(idx) { tempBillItems.splice(idx, 1); renderModalBillItems(); }
 
-        function editModalBillItem(idx) {
-            const item = tempBillItems[idx];
-            document.getElementById('modalItemSelect').value = item.sku;
-            document.getElementById('modalItemQty').value = item.qty;
-            document.getElementById('modalItemPrice').value = item.price;
-            tempBillItems.splice(idx, 1);
-            renderModalBillItems();
+        // Excel-like inline update function for bill table rows
+        function updateBillItemInline(idx, field, value) {
+            const val = parseFloat(value) || 0;
+            if (field === 'qty') {
+                tempBillItems[idx].qty = val;
+            } else if (field === 'price') {
+                tempBillItems[idx].price = val;
+            }
+            tempBillItems[idx].total = tempBillItems[idx].qty * tempBillItems[idx].price;
+            
+            // Update total display directly without losing focus
+            let gt = 0;
+            tempBillItems.forEach((item, i) => {
+                gt += item.total;
+                const totalEl = document.getElementById(`row-total-${i}`);
+                if (totalEl) totalEl.innerText = item.total.toFixed(2);
+            });
+            document.getElementById('modalBillGrandTotal').innerText = gt.toFixed(2);
         }
 
         function renderModalBillItems() {
@@ -948,13 +977,16 @@
                 gt += item.total;
                 tbody.innerHTML += `
                     <tr>
-                        <td class="p-2">${item.name}</td>
-                        <td class="p-2">${item.qty}</td>
-                        <td class="p-2">${item.price}</td>
-                        <td class="p-2">${item.total}</td>
-                        <td class="p-2 text-center space-x-1">
-                            <button type="button" onclick="editModalBillItem(${idx})" class="text-amber-400" title="Edit"><i class="fa-solid fa-pen"></i></button>
-                            <button type="button" onclick="removeModalBillItem(${idx})" class="text-rose-400" title="Remove"><i class="fa-solid fa-times"></i></button>
+                        <td class="p-2 font-medium text-white">${item.name}</td>
+                        <td class="p-2">
+                            <input type="number" min="1" value="${item.qty}" oninput="updateBillItemInline(${idx}, 'qty', this.value)" class="w-20 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs font-mono focus:border-blue-500">
+                        </td>
+                        <td class="p-2">
+                            <input type="number" min="0" step="0.01" value="${item.price}" oninput="updateBillItemInline(${idx}, 'price', this.value)" class="w-28 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs font-mono focus:border-blue-500">
+                        </td>
+                        <td class="p-2 text-emerald-400 font-bold font-mono">PKR <span id="row-total-${idx}">${item.total.toFixed(2)}</span></td>
+                        <td class="p-2 text-center">
+                            <button type="button" onclick="removeModalBillItem(${idx})" class="text-rose-400 hover:text-rose-300 p-1" title="Remove"><i class="fa-solid fa-times text-sm"></i></button>
                         </td>
                     </tr>`;
             });
