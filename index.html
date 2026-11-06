@@ -58,17 +58,16 @@
                     <i class="fa-solid fa-lock"></i>
                 </div>
                 <h2 class="text-xl font-bold text-white">Anwar Inventory Login</h2>
-                <p class="text-xs text-slate-400 mt-1">Username: admin | Password: 1234</p>
             </div>
 
-            <form onsubmit="handleLogin(event)" class="space-y-4">
+            <form onsubmit="handleLogin(event)" class="space-y-4" autocomplete="off">
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">Username</label>
-                    <input type="text" id="loginUser" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" placeholder="admin">
+                    <input type="text" id="loginUser" required autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" value="">
                 </div>
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">Password</label>
-                    <input type="password" id="loginPass" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" placeholder="1234">
+                    <input type="password" id="loginPass" required autocomplete="new-password" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" value="">
                 </div>
                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 rounded-lg transition-all text-sm shadow-md">
                     Login to System
@@ -90,8 +89,8 @@
             </h3>
             <p class="text-xs text-slate-400">Enter Master Key Code to reset credentials to default (admin / 1234).</p>
             <div>
-                <label class="block text-xs text-slate-400 mb-1">Enter Master Key (Grace@12)</label>
-                <input type="password" id="masterKeyInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm" placeholder="Grace@12">
+                <label class="block text-xs text-slate-400 mb-1">Enter Master Key</label>
+                <input type="password" id="masterKeyInput" autocomplete="new-password" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm" value="">
             </div>
             <button onclick="verifyMasterKey()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-sm font-medium">Verify & Reset Password</button>
         </div>
@@ -181,6 +180,8 @@
                                     <option value="Ltr">Ltr</option>
                                     <option value="Nos">Nos</option>
                                     <option value="Bags">Bags</option>
+                                    <option value="Drum">Drum</option>
+                                    <option value="Gallon">Gallon</option>
                                 </select>
                             </div>
                         </div>
@@ -625,7 +626,9 @@
                 sessionStorage.setItem('anwar_logged_in', 'true');
                 document.getElementById('loginModal').classList.add('hidden');
             } else {
-                alert('Invalid Username or Password! (admin / 1234)');
+                alert('Invalid Username or Password!');
+                document.getElementById('loginUser').value = '';
+                document.getElementById('loginPass').value = '';
             }
         }
 
@@ -634,13 +637,17 @@
                 document.getElementById('loginModal').classList.add('hidden');
             } else {
                 document.getElementById('loginModal').classList.remove('hidden');
+                document.getElementById('loginUser').value = '';
+                document.getElementById('loginPass').value = '';
             }
         }
 
         function openForgotPasswordModal() {
+            document.getElementById('masterKeyInput').value = '';
             document.getElementById('forgotModal').classList.remove('hidden');
         }
         function closeForgotModal() {
+            document.getElementById('masterKeyInput').value = '';
             document.getElementById('forgotModal').classList.add('hidden');
         }
         function verifyMasterKey() {
@@ -649,8 +656,9 @@
                 alert('Master Key verified! Default username is: admin, password is: 1234');
                 closeForgotModal();
             } else {
-                alert('Invalid Master Key! (Required: Grace@12)');
+                alert('Invalid Master Key!');
             }
+            document.getElementById('masterKeyInput').value = '';
         }
 
         function saveData() {
@@ -716,15 +724,15 @@
             const search = document.getElementById('searchInventory').value.toLowerCase();
             tbody.innerHTML = '';
 
-            db.items.filter(i => i.name.toLowerCase().includes(search) || i.sku.toLowerCase().includes(search)).forEach(item => {
+            db.items.filter(i => (i.name && i.name.toLowerCase().includes(search)) || (i.sku && i.sku.toLowerCase().includes(search))).forEach(item => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-700/50 transition-colors";
                 tr.innerHTML = `
                     <td class="p-3 font-mono text-xs text-blue-400">${item.sku}</td>
                     <td class="p-3 font-medium text-white">${item.name}</td>
                     <td class="p-3"><span class="bg-slate-900 px-2 py-1 rounded text-xs">${item.qty} ${item.unit}</span></td>
-                    <td class="p-3 text-emerald-400 font-semibold">PKR ${item.price.toFixed(2)}</td>
-                    <td class="p-3 text-emerald-400 font-semibold">PKR ${(item.qty * item.price).toFixed(2)}</td>
+                    <td class="p-3 text-emerald-400 font-semibold">PKR ${(item.price || 0).toFixed(2)}</td>
+                    <td class="p-3 text-emerald-400 font-semibold">PKR ${((item.qty || 0) * (item.price || 0)).toFixed(2)}</td>
                     <td class="p-3 text-center">
                         <button onclick="deleteItem('${item.sku}')" class="bg-rose-600/30 text-rose-400 px-2 py-1 rounded text-xs"><i class="fa-solid fa-trash"></i></button>
                     </td>
@@ -894,7 +902,7 @@
             doc.save("Anwar_Ledger_Statement.pdf");
         }
 
-        // Excel Imports
+        // Smart Excel Parsing with Quantity + Unit split
         function processExcelImport(type) {
             const file = document.getElementById('excelFileInput').files[0];
             if(!file) return alert('Select file');
@@ -902,18 +910,33 @@
             reader.onload = function(e) {
                 const data = new Uint8Array(e.target.result);
                 const wb = XLSX.read(data, {type: 'array'});
-                const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                const sheet = wb.Sheets[wb.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet, {header: 1});
+
                 if(type === 'items') {
-                    json.forEach(row => {
+                    let count = 0;
+                    for(let r = 5; r < json.length; r++) {
+                        let row = json[r];
+                        if(!row || !row[1]) continue;
+
+                        let itemName = String(row[1]).trim();
+                        let rawQty = String(row[2] || '1').trim();
+                        let rate = parseFloat(row[3]) || 0;
+
+                        let qtyNum = parseFloat(rawQty) || 1;
+                        let unitName = rawQty.replace(/[0-9.]/g, '').trim() || 'Pcs';
+                        let sku = 'ITM-' + Math.floor(1000 + Math.random() * 9000);
+
                         db.items.push({
-                            sku: String(row.SKU || row.Code || 'EX-' + Math.floor(Math.random()*1000)),
-                            name: String(row.ItemName || row.Name || 'Item'),
-                            qty: parseFloat(row.Qty || row.Quantity) || 1,
-                            unit: String(row.Unit || 'Pcs'),
-                            price: parseFloat(row.Price || row.Rate) || 0
+                            sku: sku,
+                            name: itemName,
+                            qty: qtyNum,
+                            unit: unitName,
+                            price: rate
                         });
-                    });
-                    alert('Items imported successfully!');
+                        count++;
+                    }
+                    alert(`${count} items imported successfully with smart parsing!`);
                 }
                 saveData();
             };
