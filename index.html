@@ -1,732 +1,1440 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anwar Inventory System</title>
-    <meta name="theme-color" content="#1e293b">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <style>
-        @media print {
-            body * { visibility: hidden; }
-            #printArea, #printArea * { visibility: visible; }
-            #printArea { position: absolute; left: 0; top: 0; width: 100%; color: #000; background: #fff; padding: 20px; }
-            .no-print { display: none !important; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anwar Inventory - Professional Ledger & Stock System</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- SheetJS for Excel Import/Export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+            }
+          }
         }
-    </style>
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+
+    /* Custom print layout */
+    @media print {
+      body * { visibility: hidden; }
+      #printable-invoice, #printable-invoice * { visibility: visible; }
+      #printable-invoice { position: absolute; left: 0; top: 0; width: 100%; }
+      .no-print { display: none !important; }
+    }
+    
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    .dark ::-webkit-scrollbar-thumb { background: #475569; }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between font-sans">
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col md:flex-row antialiased transition-colors duration-200">
 
-    <!-- MAIN APP (Directly visible now) -->
-    <div id="mainApp" class="flex-grow container mx-auto p-4 max-w-5xl">
-        <header class="flex justify-between items-center mb-6 bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-            <div>
-                <h1 class="text-lg font-bold text-white">Anwar Inventory</h1>
-                <p class="text-xs text-slate-400">Dashboard</p>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="switchTab('inventory')" class="bg-blue-600 text-white px-3 py-2 rounded-xl text-xs font-medium">Home</button>
-            </div>
-        </header>
+  <!-- Mobile Top Bar -->
+  <div class="md:hidden flex items-center justify-between bg-slate-900 text-white p-4 sticky top-0 z-40 shadow-md no-print">
+    <div class="flex items-center space-x-2">
+      <i class="fa-solid fa-boxes-stacked text-brand-500 text-2xl"></i>
+      <span class="font-bold text-lg tracking-wide">Anwar Inventory</span>
+    </div>
+    <button id="mobile-menu-btn" class="p-2 text-slate-300 hover:text-white focus:outline-none">
+      <i class="fa-solid fa-bars text-xl"></i>
+    </button>
+  </div>
 
-        <!-- NAVIGATION -->
-        <div class="flex gap-2 overflow-x-auto mb-6 bg-slate-900 p-1.5 rounded-2xl border border-slate-800">
-            <button onclick="switchTab('inventory')" id="btnInv" class="px-4 py-2 rounded-xl text-xs bg-blue-600 text-white font-medium whitespace-nowrap">Inventory</button>
-            <button onclick="switchTab('parties')" id="btnParty" class="px-4 py-2 rounded-xl text-xs text-slate-400 font-medium whitespace-nowrap">Party Ledger</button>
-            <button onclick="switchTab('bills')" id="btnBill" class="px-4 py-2 rounded-xl text-xs text-slate-400 font-medium whitespace-nowrap">Bills</button>
-            <button onclick="switchTab('ocr')" id="btnOcr" class="px-4 py-2 rounded-xl text-xs text-slate-400 font-medium whitespace-nowrap">Excel Import</button>
+  <!-- Sidebar Navigation -->
+  <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 transform -translate-x-full md:translate-x-0 md:static transition-transform duration-200 ease-in-out flex flex-col justify-between shadow-xl no-print">
+    <div>
+      <!-- Logo Header -->
+      <div class="hidden md:flex items-center space-x-3 px-6 py-6 border-b border-slate-800">
+        <div class="w-10 h-10 rounded-lg bg-brand-600 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-brand-600/30">
+          AI
         </div>
-
-        <!-- INVENTORY -->
-        <div id="tab-inventory" class="space-y-4">
-            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <h2 class="text-sm font-semibold text-white mb-3">Add / Edit Stock Item</h2>
-                <form onsubmit="saveInv(event)" class="space-y-3">
-                    <input type="hidden" id="invId">
-                    <input type="text" id="invName" placeholder="Item Name" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                    <div class="grid grid-cols-2 gap-2">
-                        <input type="text" id="invQty" placeholder="Quantity (e.g. 1 Drum)" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                        <input type="number" id="invPrice" min="0" step="any" placeholder="Price (Rs.)" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-xl text-xs">Save Item</button>
-                </form>
-            </div>
-            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <h2 class="text-sm font-semibold text-white mb-3">Inventory Stock</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-slate-300">
-                        <thead class="bg-slate-950 text-slate-400"><tr><th class="p-2">Name</th><th class="p-2">Qty</th><th class="p-2">Price</th><th class="p-2 text-right">Actions</th></tr></thead>
-                        <tbody id="invTable" class="divide-y divide-slate-800"><tr><td colspan="4" class="p-4 text-center text-slate-500">No items found.</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
+        <div>
+          <h1 class="font-bold text-white leading-tight">Anwar Inventory</h1>
+          <p class="text-xs text-slate-400">Offline Management</p>
         </div>
+      </div>
 
-        <!-- PARTY LEDGER -->
-        <div id="tab-parties" class="hidden space-y-4">
-            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <h2 class="text-sm font-semibold text-white mb-3">Add / Edit Party</h2>
-                <form onsubmit="saveParty(event)" class="space-y-3">
-                    <input type="hidden" id="partyId">
-                    <input type="text" id="partyName" placeholder="Party Name" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                    <input type="text" id="partyPhone" placeholder="Phone Number" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                    <input type="number" id="partyBal" step="any" placeholder="Balance (+/-)" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                    <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-xl text-xs">Save Party</button>
-                </form>
-            </div>
-            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <h2 class="text-sm font-semibold text-white mb-3">Party Ledgers</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-slate-300">
-                        <thead class="bg-slate-950 text-slate-400"><tr><th class="p-2">Name</th><th class="p-2">Phone</th><th class="p-2">Balance</th><th class="p-2 text-right">Actions</th></tr></thead>
-                        <tbody id="partyTable" class="divide-y divide-slate-800"><tr><td colspan="4" class="p-4 text-center text-slate-500">No parties found.</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+      <!-- Navigation Links -->
+      <nav class="mt-4 px-3 space-y-1.5">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-white bg-brand-600 shadow-md shadow-brand-600/20">
+          <i class="fa-solid fa-chart-pie w-5 text-center"></i>
+          <span>Dashboard</span>
+        </button>
 
-        <!-- BILLS -->
-        <div id="tab-bills" class="hidden space-y-4">
-            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <h2 class="text-sm font-semibold text-white mb-3">Create / Edit Bill</h2>
-                <form onsubmit="saveBill(event)" class="space-y-3">
-                    <input type="hidden" id="billId">
-                    <input type="text" id="billCust" placeholder="Customer / Shop Name" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                    <input type="text" id="billDet" placeholder="Items Details / Summary" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                    <input type="number" id="billTot" min="0" step="any" placeholder="Total Amount (Rs.)" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                    <button type="submit" class="w-full bg-emerald-600 text-white py-2 rounded-xl text-xs">Save Bill</button>
-                </form>
-            </div>
-            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                <h2 class="text-sm font-semibold text-white mb-3">Invoices History</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-slate-300">
-                        <thead class="bg-slate-950 text-slate-400"><tr><th class="p-2">Customer</th><th class="p-2">Details</th><th class="p-2">Total (Rs.)</th><th class="p-2 text-right">Actions</th></tr></thead>
-                        <tbody id="billTable" class="divide-y divide-slate-800"><tr><td colspan="4" class="p-4 text-center text-slate-500">No bills found.</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+        <button onclick="switchTab('inventory')" id="nav-inventory" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 text-slate-300 hover:text-white transition-all">
+          <i class="fa-solid fa-box-archive w-5 text-center"></i>
+          <span>1. Inventory Stock</span>
+        </button>
 
-        <!-- EXCEL BILL IMPORT -->
-        <div id="tab-ocr" class="hidden space-y-4">
-            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl max-w-4xl mx-auto">
-                <div class="flex items-center gap-3 mb-2">
-                    <div class="bg-emerald-500/15 text-emerald-400 rounded-xl p-3">
-                        <i data-lucide="file-spreadsheet" class="w-7 h-7"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-bold text-white">Excel Sheet Importer</h2>
-                        <p class="text-xs text-slate-400">Date, Item, Qty, Unit Rate aur Total Amount complete read karein.</p>
-                    </div>
-                </div>
+        <button onclick="switchTab('parties')" id="nav-parties" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 text-slate-300 hover:text-white transition-all">
+          <i class="fa-solid fa-users w-5 text-center"></i>
+          <span>2. Parties (Ledger)</span>
+        </button>
 
-                <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 mt-4">
-                    <label class="block text-xs font-semibold text-slate-300 mb-2">Select Excel / CSV File</label>
-                    <input id="excelFile" type="file" accept=".xlsx,.xls,.csv,.ods" onchange="readExcelBill(event)"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-slate-200">
-                </div>
+        <button onclick="switchTab('bills')" id="nav-bills" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 text-slate-300 hover:text-white transition-all">
+          <i class="fa-solid fa-file-invoice-dollar w-5 text-center"></i>
+          <span>3. Bills & Invoices</span>
+        </button>
 
-                <div id="excelStatus" class="hidden mt-4 rounded-xl p-3 text-xs"></div>
+        <button onclick="switchTab('party-ledger')" id="nav-party-ledger" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 text-slate-300 hover:text-white transition-all">
+          <i class="fa-solid fa-scale-balanced w-5 text-center"></i>
+          <span>4. Total Party Ledger</span>
+        </button>
 
-                <div id="excelBillFields" class="hidden mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">Customer / Supplier Name</label>
-                        <input id="excelCustomer" type="text" placeholder="Customer or supplier"
-                            class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">Bill Date</label>
-                        <input id="excelDate" type="text" placeholder="Bill Date"
-                            class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white">
-                    </div>
-                </div>
-
-                <div id="excelPreviewWrap" class="hidden mt-4 bg-slate-950 border border-slate-800 rounded-xl p-3">
-                    <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
-                        <h3 class="text-sm font-bold text-emerald-400">Imported Data Preview (Editable)</h3>
-                        <span id="excelRowCount" class="text-[11px] text-slate-400"></span>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full min-w-[650px] text-left text-xs text-slate-200">
-                            <thead class="bg-slate-900 text-slate-400">
-                                <tr>
-                                    <th class="p-2">Date</th>
-                                    <th class="p-2">Item Name</th>
-                                    <th class="p-2">Qty</th>
-                                    <th class="p-2">Unit Rate</th>
-                                    <th class="p-2">Total (Rs)</th>
-                                    <th class="p-2 text-center">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="excelPreviewBody" class="divide-y divide-slate-800"></tbody>
-                        </table>
-                    </div>
-                    <div class="flex flex-wrap justify-between items-center gap-3 mt-4">
-                        <button type="button" onclick="addExcelItemRow()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-xs">+ Add Row</button>
-                        <div class="text-right">
-                            <p class="text-xs text-slate-400">Grand Total</p>
-                            <p class="text-xl font-bold text-emerald-400">Rs. <span id="excelGrandTotal">0.00</span></p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex gap-2 mt-4">
-                    <button id="saveExcelBillBtn" type="button" onclick="saveExcelBill()" disabled
-                        class="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold text-sm">
-                        Save Imported Bill
-                    </button>
-                    <button id="printExcelBillBtn" type="button" onclick="printCurrentExcel()" disabled
-                        class="bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-semibold text-sm flex items-center gap-1">
-                        <i data-lucide="printer" class="w-4 h-4"></i> Print Preview
-                    </button>
-                </div>
-            </div>
-        </div>
+        <button onclick="switchTab('excel-import')" id="nav-excel-import" class="nav-item w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium hover:bg-slate-800 text-slate-300 hover:text-white transition-all">
+          <i class="fa-solid fa-file-excel w-5 text-center"></i>
+          <span>5. Excel Import & Data</span>
+        </button>
+      </nav>
     </div>
 
-    <!-- PRINT SECTION CONTAINER -->
-    <div id="printArea" class="hidden"></div>
+    <!-- Sidebar Footer -->
+    <div class="p-4 border-t border-slate-800 space-y-3">
+      <div class="flex items-center justify-between text-xs text-slate-400 bg-slate-800/50 p-2.5 rounded-lg">
+        <span class="flex items-center"><i class="fa-solid fa-hard-drive mr-2 text-brand-500"></i> Mode</span>
+        <span class="text-brand-400 font-semibold">Local Storage</span>
+      </div>
+      <button onclick="toggleDarkMode()" class="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 transition-colors">
+        <i class="fa-solid fa-moon dark:hidden"></i>
+        <i class="fa-solid fa-sun hidden dark:block text-yellow-400"></i>
+        <span class="dark:hidden">Dark Mode</span>
+        <span class="hidden dark:block">Light Mode</span>
+      </button>
+    </div>
+  </aside>
 
-    <footer class="bg-slate-950 text-slate-400 text-center py-3 border-t border-slate-900 text-xs">
-        Powered by <span class="font-semibold text-blue-400">Usman Qureshi</span> |
-        Contact: <a href="tel:03463997211" class="text-slate-200 hover:underline">03463997211</a>
-    </footer>
+  <!-- Main Content Area -->
+  <main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
 
-<script>
-    function getStore(key) {
-        try {
-            const value = JSON.parse(localStorage.getItem(key) || '[]');
-            return Array.isArray(value) ? value : [];
-        } catch (error) {
-            return [];
-        }
-    }
+    <!-- Top Header Bar (Live Date & Time) -->
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700/60 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print shadow-xs">
+      <div>
+        <h2 id="page-title" class="text-xl font-bold text-slate-800 dark:text-white tracking-tight">Overview Dashboard</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Real-time store statistics and quick actions</p>
+      </div>
 
-    function setStore(key, data) {
-        try {
-            localStorage.setItem(key, JSON.stringify(data));
-        } catch (error) {
-            alert('Storage full or unavailable.');
-        }
-    }
+      <!-- Real-time Clock Banner -->
+      <div class="flex items-center space-x-3 bg-slate-100 dark:bg-slate-700/50 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600/50 self-start sm:self-auto">
+        <i class="fa-regular fa-clock text-brand-600 dark:text-brand-400 text-lg"></i>
+        <div class="text-right">
+          <div id="live-time" class="text-sm font-bold tracking-wider text-slate-800 dark:text-slate-100">00:00:00 AM</div>
+          <div id="live-date" class="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400">Jan 1, 2026</div>
+        </div>
+      </div>
+    </header>
 
-    function escapeHTML(value) {
-        return String(value ?? '').replace(/[&<>"']/g, char => ({
-            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-        })[char]);
-    }
+    <!-- Content Sections CONTAINER -->
+    <div class="p-4 sm:p-6 lg:p-8 flex-1 max-w-7xl w-full mx-auto space-y-8">
 
-    function switchTab(tab) {
-        ['inventory', 'parties', 'bills', 'ocr'].forEach(key => {
-            document.getElementById(`tab-${key}`).classList.add('hidden');
-        });
-        ['btnInv', 'btnParty', 'btnBill', 'btnOcr'].forEach(id => {
-            const button = document.getElementById(id);
-            button.classList.remove('bg-blue-600', 'text-white');
-            button.classList.add('text-slate-400');
-        });
+      <!-- ================= SECTION 0: DASHBOARD OVERVIEW ================= -->
+      <section id="section-dashboard" class="tab-content space-y-6">
+        <!-- Overview Stats Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <!-- Card 1 -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between">
+            <div>
+              <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Items</p>
+              <h3 id="stat-total-items" class="text-2xl font-bold mt-1 text-slate-900 dark:text-white">0</h3>
+              <span id="stat-low-stock" class="text-xs text-amber-500 font-medium mt-1 inline-block">0 low in stock</span>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl">
+              <i class="fa-solid fa-boxes-stacked"></i>
+            </div>
+          </div>
 
-        document.getElementById(`tab-${tab}`).classList.remove('hidden');
-        const activeId = { inventory: 'btnInv', parties: 'btnParty', bills: 'btnBill', ocr: 'btnOcr' }[tab];
-        const activeButton = document.getElementById(activeId);
-        activeButton.classList.add('bg-blue-600', 'text-white');
-        activeButton.classList.remove('text-slate-400');
-    }
+          <!-- Card 2 -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between">
+            <div>
+              <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Parties</p>
+              <h3 id="stat-total-parties" class="text-2xl font-bold mt-1 text-slate-900 dark:text-white">0</h3>
+              <span class="text-xs text-slate-400 mt-1 inline-block">Customers & Suppliers</span>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl">
+              <i class="fa-solid fa-users"></i>
+            </div>
+          </div>
 
-    // INVENTORY MANAGEMENT
-    function saveInv(event) {
-        event.preventDefault();
-        const id = document.getElementById('invId').value;
-        const item = {
-            id: id ? Number(id) : Date.now(),
-            name: document.getElementById('invName').value.trim(),
-            qty: document.getElementById('invQty').value,
-            price: document.getElementById('invPrice').value
-        };
+          <!-- Card 3 -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between">
+            <div>
+              <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Receivables</p>
+              <h3 id="stat-total-receivable" class="text-2xl font-bold mt-1 text-emerald-600 dark:text-emerald-400">Rs 0</h3>
+              <span class="text-xs text-emerald-500 font-medium mt-1 inline-block">To Receive</span>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl">
+              <i class="fa-solid fa-arrow-down-left"></i>
+            </div>
+          </div>
 
-        let list = getStore('inv');
-        if (id) list = list.map(row => row.id == id ? item : row);
-        else list.push(item);
+          <!-- Card 4 -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between">
+            <div>
+              <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Payables</p>
+              <h3 id="stat-total-payable" class="text-2xl font-bold mt-1 text-rose-600 dark:text-rose-400">Rs 0</h3>
+              <span class="text-xs text-rose-500 font-medium mt-1 inline-block">To Pay</span>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center justify-center text-xl">
+              <i class="fa-solid fa-arrow-up-right"></i>
+            </div>
+          </div>
+        </div>
 
-        setStore('inv', list);
-        event.target.reset();
-        document.getElementById('invId').value = '';
-        loadInv();
-    }
+        <!-- Dashboard Quick Navigation Cards Grid -->
+        <h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">Main Modules</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div onclick="switchTab('inventory')" class="cursor-pointer bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 transition-all shadow-xs hover:shadow-md group">
+            <div class="w-12 h-12 rounded-xl bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+              <i class="fa-solid fa-box-archive"></i>
+            </div>
+            <h4 class="text-base font-bold text-slate-900 dark:text-white mb-1">1. Inventory Module</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Add, view, and adjust stock quantities. Search items & monitor reorder levels.</p>
+          </div>
 
-    function editInv(id) {
-        const item = getStore('inv').find(row => row.id == id);
-        if (!item) return;
-        document.getElementById('invId').value = item.id;
-        document.getElementById('invName').value = item.name;
-        document.getElementById('invQty').value = item.qty;
-        document.getElementById('invPrice').value = item.price;
-    }
+          <div onclick="switchTab('parties')" class="cursor-pointer bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 transition-all shadow-xs hover:shadow-md group">
+            <div class="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+              <i class="fa-solid fa-user-plus"></i>
+            </div>
+            <h4 class="text-base font-bold text-slate-900 dark:text-white mb-1">2. Parties (Ledger)</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Add parties manually or via Excel. Manage customer & supplier profiles.</p>
+          </div>
 
-    function delInv(id) {
-        if (!confirm('Delete this item?')) return;
-        setStore('inv', getStore('inv').filter(row => row.id != id));
-        loadInv();
-    }
+          <div onclick="switchTab('bills')" class="cursor-pointer bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 transition-all shadow-xs hover:shadow-md group">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+              <i class="fa-solid fa-receipt"></i>
+            </div>
+            <h4 class="text-base font-bold text-slate-900 dark:text-white mb-1">3. Date-wise Bills</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Generate sale/purchase bills, view invoice history, print & share on WhatsApp.</p>
+          </div>
 
-    function loadInv() {
-        const list = getStore('inv');
-        const table = document.getElementById('invTable');
-        if (!list.length) {
-            table.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-500">No items found.</td></tr>';
-            return;
-        }
-        table.innerHTML = list.map(item => `
-            <tr class="hover:bg-slate-950/50">
-                <td class="p-2">${escapeHTML(item.name)}</td>
-                <td class="p-2">${escapeHTML(item.qty)}</td>
-                <td class="p-2">Rs. ${escapeHTML(item.price)}</td>
-                <td class="p-2 text-right whitespace-nowrap">
-                    <button onclick="editInv(${Number(item.id)})" class="text-blue-400 mr-2">Edit</button>
-                    <button onclick="delInv(${Number(item.id)})" class="text-red-400">Del</button>
-                </td>
-            </tr>`).join('');
-    }
+          <div onclick="switchTab('party-ledger')" class="cursor-pointer bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 transition-all shadow-xs hover:shadow-md group">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+              <i class="fa-solid fa-scale-balanced"></i>
+            </div>
+            <h4 class="text-base font-bold text-slate-900 dark:text-white mb-1">4. Total Party Ledger</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400">View overall accounts, filter receivables/payables, print full ledger summary.</p>
+          </div>
 
-    // PARTY LEDGER
-    function saveParty(event) {
-        event.preventDefault();
-        const id = document.getElementById('partyId').value;
-        const party = {
-            id: id ? Number(id) : Date.now(),
-            name: document.getElementById('partyName').value.trim(),
-            phone: document.getElementById('partyPhone').value.trim(),
-            balance: document.getElementById('partyBal').value
-        };
+          <div onclick="switchTab('excel-import')" class="cursor-pointer bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-500 transition-all shadow-xs hover:shadow-md group">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+              <i class="fa-solid fa-file-excel"></i>
+            </div>
+            <h4 class="text-base font-bold text-slate-900 dark:text-white mb-1">5. Excel Import & Auto Sync</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Upload `.xlsx` / `.csv` files to import stock or parties automatically in seconds.</p>
+          </div>
+        </div>
+      </section>
 
-        let list = getStore('parties');
-        if (id) list = list.map(row => row.id == id ? party : row);
-        else list.push(party);
+      <!-- ================= SECTION 1: INVENTORY BLOCK ================= -->
+      <section id="section-inventory" class="tab-content hidden space-y-6">
+        <!-- Action Header -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs">
+          <div class="flex items-center space-x-3">
+            <input type="text" id="inventory-search" oninput="renderInventoryTable()" placeholder="Search item by name or SKU..." class="w-full sm:w-64 px-4 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <select id="inventory-filter-category" onchange="renderInventoryTable()" class="px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
+              <option value="ALL">All Categories</option>
+            </select>
+          </div>
+          <button onclick="openModal('modal-add-item')" class="bg-brand-600 hover:bg-brand-700 text-white font-medium px-4 py-2.5 rounded-xl text-sm flex items-center justify-center space-x-2 shadow-md shadow-brand-600/20 transition-all">
+            <i class="fa-solid fa-plus"></i>
+            <span>Add Item Manual</span>
+          </button>
+        </div>
 
-        setStore('parties', list);
-        event.target.reset();
-        document.getElementById('partyId').value = '';
-        loadParties();
-    }
-
-    function editParty(id) {
-        const party = getStore('parties').find(row => row.id == id);
-        if (!party) return;
-        document.getElementById('partyId').value = party.id;
-        document.getElementById('partyName').value = party.name;
-        document.getElementById('partyPhone').value = party.phone || '';
-        document.getElementById('partyBal').value = party.balance;
-    }
-
-    function delParty(id) {
-        if (!confirm('Delete party?')) return;
-        setStore('parties', getStore('parties').filter(row => row.id != id));
-        loadParties();
-    }
-
-    function loadParties() {
-        const list = getStore('parties');
-        const table = document.getElementById('partyTable');
-        if (!list.length) {
-            table.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-500">No parties found.</td></tr>';
-            return;
-        }
-        table.innerHTML = list.map(party => `
-            <tr class="hover:bg-slate-950/50">
-                <td class="p-2">${escapeHTML(party.name)}</td>
-                <td class="p-2">${escapeHTML(party.phone || '-')}</td>
-                <td class="p-2">Rs. ${escapeHTML(party.balance)}</td>
-                <td class="p-2 text-right whitespace-nowrap">
-                    <button onclick="editParty(${Number(party.id)})" class="text-blue-400 mr-2">Edit</button>
-                    <button onclick="delParty(${Number(party.id)})" class="text-red-400">Del</button>
-                </td>
-            </tr>`).join('');
-    }
-
-    // BILLS & PRINTING
-    function saveBill(event) {
-        event.preventDefault();
-        const id = document.getElementById('billId').value;
-        const bill = {
-            id: id ? Number(id) : Date.now(),
-            customer: document.getElementById('billCust').value.trim(),
-            details: document.getElementById('billDet').value.trim(),
-            total: document.getElementById('billTot').value,
-            date: new Date().toLocaleDateString()
-        };
-
-        let list = getStore('bills');
-        if (id) list = list.map(row => row.id == id ? {...row, ...bill} : row);
-        else list.push(bill);
-
-        setStore('bills', list);
-        event.target.reset();
-        document.getElementById('billId').value = '';
-        loadBills();
-    }
-
-    function editBill(id) {
-        const bill = getStore('bills').find(row => row.id == id);
-        if (!bill) return;
-        document.getElementById('billId').value = bill.id;
-        document.getElementById('billCust').value = bill.customer;
-        document.getElementById('billDet').value = bill.details;
-        document.getElementById('billTot').value = bill.total;
-    }
-
-    function delBill(id) {
-        if (!confirm('Delete bill?')) return;
-        setStore('bills', getStore('bills').filter(row => row.id != id));
-        loadBills();
-    }
-
-    function printBill(id) {
-        const bill = getStore('bills').find(row => row.id == id);
-        if (!bill) return;
-
-        let itemsMarkup = '';
-        if (bill.items && Array.isArray(bill.items)) {
-            itemsMarkup = bill.items.map((item, idx) => `
-                <tr>
-                    <td style="border:1px solid #ccc; padding:8px;">${idx+1}</td>
-                    <td style="border:1px solid #ccc; padding:8px;">${escapeHTML(item.date || '-')}</td>
-                    <td style="border:1px solid #ccc; padding:8px;">${escapeHTML(item.item || '-')}</td>
-                    <td style="border:1px solid #ccc; padding:8px;">${escapeHTML(item.qty || '-')}</td>
-                    <td style="border:1px solid #ccc; padding:8px;">${escapeHTML(item.rate || '-')}</td>
-                    <td style="border:1px solid #ccc; padding:8px; text-align:right;">Rs. ${escapeHTML(item.amount || '0')}</td>
+        <!-- Inventory Table -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-xs">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-100/70 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs uppercase font-semibold border-b border-slate-200 dark:border-slate-700">
+                  <th class="p-4">SKU Code</th>
+                  <th class="p-4">Item Name</th>
+                  <th class="p-4">Category</th>
+                  <th class="p-4 text-right">Unit Price</th>
+                  <th class="p-4 text-center">Stock</th>
+                  <th class="p-4 text-center">Reorder Lvl</th>
+                  <th class="p-4 text-center">Actions</th>
                 </tr>
-            `).join('');
-        } else {
-            itemsMarkup = `
-                <tr>
-                    <td style="border:1px solid #ccc; padding:8px;">1</td>
-                    <td style="border:1px solid #ccc; padding:8px;">-</td>
-                    <td style="border:1px solid #ccc; padding:8px;">${escapeHTML(bill.details)}</td>
-                    <td style="border:1px solid #ccc; padding:8px;">-</td>
-                    <td style="border:1px solid #ccc; padding:8px;">-</td>
-                    <td style="border:1px solid #ccc; padding:8px; text-align:right;">Rs. ${escapeHTML(bill.total)}</td>
-                </tr>`;
-        }
+              </thead>
+              <tbody id="inventory-table-body" class="divide-y divide-slate-200 dark:divide-slate-700/60 text-sm">
+                <!-- Dynamic Rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
-        const printHTML = `
-            <div style="font-family: Arial, sans-serif; padding: 20px;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <h2 style="margin: 0; font-size: 24px; font-weight: bold;">ANWAR INVENTORY</h2>
-                    <p style="margin: 4px 0; font-size: 14px;">Sales Invoice / Bill Statement</p>
-                    <p style="margin: 4px 0; font-size: 12px; color: #555;">Contact: 03463997211</p>
-                </div>
-                <hr style="border: 0; border-top: 1px solid #888; margin-bottom: 15px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 14px;">
-                    <div><strong>Customer:</strong> ${escapeHTML(bill.customer)}</div>
-                    <div><strong>Date:</strong> ${bill.date || new Date().toLocaleDateString()}</div>
-                </div>
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px;">
-                    <thead>
-                        <tr style="background-color: #f2f2f2;">
-                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">#</th>
-                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">Date</th>
-                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">Item Name</th>
-                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">Qty</th>
-                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">Unit Rate</th>
-                            <th style="border:1px solid #ccc; padding:8px; text-align:right;">Total (Rs)</th>
-                        </tr>
-                    </thead>
-                    <tbody>${itemsMarkup}</tbody>
-                </table>
-                <div style="text-align: right; font-size: 16px; font-weight: bold;">
-                    Grand Total: Rs. ${Number(bill.total).toLocaleString('en-PK')}
-                </div>
-                <div style="margin-top: 40px; text-align: center; font-size: 11px; color: #777;">
-                    Thank you for your business!
-                </div>
+      <!-- ================= SECTION 2: PARTIES BLOCK ================= -->
+      <section id="section-parties" class="tab-content hidden space-y-6">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs">
+          <div class="flex items-center space-x-3">
+            <input type="text" id="party-search" oninput="renderPartiesTable()" placeholder="Search Party name or phone..." class="w-full sm:w-64 px-4 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <select id="party-filter-type" onchange="renderPartiesTable()" class="px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
+              <option value="ALL">All Types</option>
+              <option value="Customer">Customer</option>
+              <option value="Supplier">Supplier</option>
+            </select>
+          </div>
+          <button onclick="openModal('modal-add-party')" class="bg-brand-600 hover:bg-brand-700 text-white font-medium px-4 py-2.5 rounded-xl text-sm flex items-center justify-center space-x-2 shadow-md shadow-brand-600/20 transition-all">
+            <i class="fa-solid fa-user-plus"></i>
+            <span>Add Party Manual</span>
+          </button>
+        </div>
+
+        <!-- Party Directory Table -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-xs">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-100/70 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs uppercase font-semibold border-b border-slate-200 dark:border-slate-700">
+                  <th class="p-4">Party Name</th>
+                  <th class="p-4">Type</th>
+                  <th class="p-4">Phone</th>
+                  <th class="p-4">Address / City</th>
+                  <th class="p-4 text-right">Current Balance</th>
+                  <th class="p-4 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="parties-table-body" class="divide-y divide-slate-200 dark:divide-slate-700/60 text-sm">
+                <!-- Dynamic Rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 3: BILLS & INVOICES BLOCK ================= -->
+      <section id="section-bills" class="tab-content hidden space-y-6">
+        <!-- Invoice Header Actions -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs">
+          <div class="flex flex-wrap items-center gap-3">
+            <input type="date" id="bill-filter-date" onchange="renderBillsTable()" class="px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 focus:outline-none">
+            <select id="bill-filter-party" onchange="renderBillsTable()" class="px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 text-slate-800 dark:text-slate-100 focus:outline-none">
+              <option value="ALL">All Parties</option>
+            </select>
+          </div>
+          <button onclick="openModal('modal-create-bill')" class="bg-brand-600 hover:bg-brand-700 text-white font-medium px-4 py-2.5 rounded-xl text-sm flex items-center justify-center space-x-2 shadow-md shadow-brand-600/20 transition-all">
+            <i class="fa-solid fa-file-invoice"></i>
+            <span>Create New Bill</span>
+          </button>
+        </div>
+
+        <!-- Date-wise Bills List -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-xs">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-100/70 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs uppercase font-semibold border-b border-slate-200 dark:border-slate-700">
+                  <th class="p-4">Invoice #</th>
+                  <th class="p-4">Date</th>
+                  <th class="p-4">Party Name</th>
+                  <th class="p-4">Type</th>
+                  <th class="p-4 text-right">Grand Total</th>
+                  <th class="p-4 text-center">Actions / Print</th>
+                </tr>
+              </thead>
+              <tbody id="bills-table-body" class="divide-y divide-slate-200 dark:divide-slate-700/60 text-sm">
+                <!-- Dynamic Rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 4: TOTAL PARTY LEDGER BLOCK ================= -->
+      <section id="section-party-ledger" class="tab-content hidden space-y-6">
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 p-5 rounded-2xl">
+            <span class="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Total Receivables (To Receive)</span>
+            <div id="ledger-summary-receivables" class="text-2xl font-black text-emerald-700 dark:text-emerald-300 mt-2">Rs 0</div>
+          </div>
+          <div class="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/40 p-5 rounded-2xl">
+            <span class="text-xs font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wider">Total Payables (To Pay)</span>
+            <div id="ledger-summary-payables" class="text-2xl font-black text-rose-700 dark:text-rose-300 mt-2">Rs 0</div>
+          </div>
+          <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 p-5 rounded-2xl">
+            <span class="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">Net Outstanding Balance</span>
+            <div id="ledger-summary-net" class="text-2xl font-black text-blue-700 dark:text-blue-300 mt-2">Rs 0</div>
+          </div>
+        </div>
+
+        <!-- Ledger Table Block -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-xs">
+          <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <h3 class="font-bold text-base text-slate-800 dark:text-white">Full Accounts Ledger</h3>
+            <button onclick="window.print()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs rounded-xl font-medium flex items-center space-x-2">
+              <i class="fa-solid fa-print"></i>
+              <span>Print Ledger Summary</span>
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-100/70 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs uppercase font-semibold border-b border-slate-200 dark:border-slate-700">
+                  <th class="p-4">Party Name</th>
+                  <th class="p-4">Phone Number</th>
+                  <th class="p-4">Party Role</th>
+                  <th class="p-4 text-right">Debit (Receivable)</th>
+                  <th class="p-4 text-right">Credit (Payable)</th>
+                  <th class="p-4 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody id="party-ledger-table-body" class="divide-y divide-slate-200 dark:divide-slate-700/60 text-sm">
+                <!-- Dynamic Ledger Data -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION 5: EXCEL IMPORT & DATA MANAGEMENT ================= -->
+      <section id="section-excel-import" class="tab-content hidden space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          <!-- Excel / CSV File Importer Box -->
+          <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+            <div class="flex items-center space-x-3 text-emerald-600 dark:text-emerald-400">
+              <i class="fa-solid fa-file-excel text-2xl"></i>
+              <h3 class="text-base font-bold text-slate-900 dark:text-white">Auto Import Excel File</h3>
             </div>
-        `;
+            <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Upload `.xlsx` or `.csv` files to import Items or Parties into your LocalStorage database instantly.
+            </p>
 
-        const printArea = document.getElementById('printArea');
-        printArea.innerHTML = printHTML;
-        printArea.classList.remove('hidden');
-        window.print();
-        printArea.classList.add('hidden');
-    }
+            <div class="space-y-3">
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Select Data Target</label>
+              <select id="excel-import-target" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-100">
+                <option value="items">Import Inventory Items</option>
+                <option value="parties">Import Parties (Customers/Suppliers)</option>
+              </select>
 
-    function loadBills() {
-        const list = getStore('bills');
-        const table = document.getElementById('billTable');
-        if (!list.length) {
-            table.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-500">No bills found.</td></tr>';
-            return;
-        }
-        table.innerHTML = list.map(bill => `
-            <tr class="hover:bg-slate-950/50">
-                <td class="p-2 font-medium text-white">${escapeHTML(bill.customer)}</td>
-                <td class="p-2">${escapeHTML(bill.details)}</td>
-                <td class="p-2 text-emerald-400 font-bold">Rs. ${escapeHTML(bill.total)}</td>
-                <td class="p-2 text-right whitespace-nowrap">
-                    <button onclick="printBill(${Number(bill.id)})" class="text-emerald-400 mr-2 hover:underline">Print</button>
-                    <button onclick="editBill(${Number(bill.id)})" class="text-blue-400 mr-2">Edit</button>
-                    <button onclick="delBill(${Number(bill.id)})" class="text-red-400">Del</button>
-                </td>
-            </tr>`).join('');
-    }
-
-    // EXCEL IMPORT WITH COMPLETE COLUMN EXTRACTION
-    let excelImportedRows = [];
-    let excelWorkbookName = '';
-
-    function showExcelStatus(message, type = 'info') {
-        const box = document.getElementById('excelStatus');
-        box.classList.remove('hidden', 'text-red-300', 'text-emerald-300', 'text-blue-300', 'bg-red-950/40', 'bg-emerald-950/40', 'bg-blue-950/40');
-        const styles = {
-            error: ['text-red-300', 'bg-red-950/40'],
-            success: ['text-emerald-300', 'bg-emerald-950/40'],
-            info: ['text-blue-300', 'bg-blue-950/40']
-        };
-        box.classList.add(...styles[type]);
-        box.textContent = message;
-    }
-
-    function normalizeHeader(v) {
-        return String(v ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    }
-
-    function findCol(headers, aliases) {
-        const norm = headers.map(normalizeHeader);
-        for (let alias of aliases) {
-            const idx = norm.indexOf(normalizeHeader(alias));
-            if (idx !== -1) return idx;
-        }
-        return -1;
-    }
-
-    function readExcelBill(event) {
-        const file = event.target.files && event.target.files[0];
-        if (!file) return;
-
-        if (typeof XLSX === 'undefined') {
-            showExcelStatus('Excel reader load nahi hua. Page reload karein.', 'error');
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-                if (!workbook.SheetNames.length) throw new Error('Sheet nahi mili.');
-
-                excelWorkbookName = file.name;
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
-
-                if (!matrix.length) throw new Error('Selected sheet khaali hai.');
-
-                let headerRowIndex = -1;
-                for (let r = 0; r < Math.min(matrix.length, 15); r++) {
-                    const row = (matrix[r] || []).map(normalizeHeader);
-                    if (row.includes('itemname') || row.includes('item') || row.includes('unitrate') || row.includes('totalrs') || row.includes('total')) {
-                        headerRowIndex = r;
-                        break;
-                    }
-                }
-
-                if (headerRowIndex === -1) headerRowIndex = 0;
-
-                const headers = (matrix[headerRowIndex] || []).map(v => String(v || '').trim());
-                const dataRows = matrix.slice(headerRowIndex + 1).filter(r => r.some(v => String(v ?? '').trim() !== ''));
-
-                const dateCol = findCol(headers, ['date', 'dated', 'bill date']);
-                const itemCol = findCol(headers, ['item name', 'item', 'description', 'product']);
-                const qtyCol = findCol(headers, ['quantity', 'qty', 'pcs', 'units']);
-                const rateCol = findCol(headers, ['unit rate (rs)', 'unit rate', 'rate', 'price', 'unit price']);
-                const totalCol = findCol(headers, ['total (rs)', 'total', 'amount', 'total amount']);
-
-                excelImportedRows = dataRows.map(row => {
-                    const dt = dateCol >= 0 ? row[dateCol] : '';
-                    const item = itemCol >= 0 ? row[itemCol] : row[0] || '';
-                    const qty = qtyCol >= 0 ? row[qtyCol] : row[1] || '';
-                    const rate = rateCol >= 0 ? row[rateCol] : row[2] || '';
-                    let amount = totalCol >= 0 ? row[totalCol] : row[3] || '';
-
-                    let cleanRate = String(rate).replace(/,/g, '').replace(/[^\d.-]/g, '');
-                    let cleanAmount = String(amount).replace(/,/g, '').replace(/[^\d.-]/g, '');
-
-                    return {
-                        date: String(dt ?? '').trim(),
-                        item: String(item ?? '').trim(),
-                        qty: String(qty ?? '').trim(),
-                        rate: cleanRate !== '' ? Number(cleanRate) : '',
-                        amount: cleanAmount !== '' ? Number(cleanAmount) : ''
-                    };
-                }).filter(r => r.item || r.amount !== '' || r.qty !== '');
-
-                if (!excelImportedRows.length) throw new Error('Data read nahi ho saka.');
-
-                document.getElementById('excelCustomer').value = 'Customer Invoice';
-                document.getElementById('excelDate').value = new Date().toLocaleDateString();
-
-                renderExcelPreview();
-                document.getElementById('excelBillFields').classList.remove('hidden');
-                document.getElementById('excelPreviewWrap').classList.remove('hidden');
-                document.getElementById('saveExcelBillBtn').disabled = false;
-                document.getElementById('printExcelBillBtn').disabled = false;
-
-                showExcelStatus(`Sheet successfully imported! Total ${excelImportedRows.length} items parsed.`, 'success');
-            } catch (err) {
-                showExcelStatus(err.message || 'Excel file read nahi ho saki.', 'error');
-            }
-        };
-        reader.readAsArrayBuffer(file);
-    }
-
-    function renderExcelPreview() {
-        const body = document.getElementById('excelPreviewBody');
-        body.innerHTML = '';
-
-        excelImportedRows.forEach((row, index) => {
-            const tr = document.createElement('tr');
-            tr.className = 'hover:bg-slate-900/50';
-            tr.innerHTML = `
-                <td class="p-1"><input data-field="date" type="text" class="w-24 bg-slate-900 border border-slate-700 rounded p-1.5 text-white text-xs"></td>
-                <td class="p-1"><input data-field="item" type="text" class="w-full min-w-36 bg-slate-900 border border-slate-700 rounded p-1.5 text-white text-xs"></td>
-                <td class="p-1"><input data-field="qty" type="text" class="w-24 bg-slate-900 border border-slate-700 rounded p-1.5 text-white text-xs"></td>
-                <td class="p-1"><input data-field="rate" type="number" step="any" class="w-24 bg-slate-900 border border-slate-700 rounded p-1.5 text-white text-xs"></td>
-                <td class="p-1"><input data-field="amount" type="number" step="any" class="w-28 bg-slate-900 border border-slate-700 rounded p-1.5 text-white text-xs font-semibold text-emerald-400"></td>
-                <td class="p-1 text-center"><button type="button" class="text-red-400 hover:text-red-300 font-bold px-2 py-1">✕</button></td>
-            `;
-
-            tr.querySelector('[data-field="date"]').value = row.date;
-            tr.querySelector('[data-field="item"]').value = row.item;
-            tr.querySelector('[data-field="qty"]').value = row.qty;
-            tr.querySelector('[data-field="rate"]').value = row.rate;
-            tr.querySelector('[data-field="amount"]').value = row.amount;
-
-            tr.querySelectorAll('input').forEach(input => {
-                input.addEventListener('input', () => {
-                    const field = input.dataset.field;
-                    excelImportedRows[index][field] = (field === 'rate' || field === 'amount') ? (input.value === '' ? '' : Number(input.value)) : input.value;
-                    calculateExcelTotal();
-                });
-            });
-
-            tr.querySelector('button').addEventListener('click', () => {
-                excelImportedRows.splice(index, 1);
-                renderExcelPreview();
-            });
-
-            body.appendChild(tr);
-        });
-
-        document.getElementById('excelRowCount').textContent = `${excelImportedRows.length} items`;
-        calculateExcelTotal();
-    }
-
-    function calculateExcelTotal() {
-        const total = excelImportedRows.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-        document.getElementById('excelGrandTotal').textContent = total.toLocaleString('en-PK', { minimumFractionDigits: 2 });
-        return total;
-    }
-
-    function addExcelItemRow() {
-        excelImportedRows.push({ date: '', item: '', qty: '1', rate: 0, amount: 0 });
-        renderExcelPreview();
-    }
-
-    function saveExcelBill() {
-        if (!excelImportedRows.length) return alert('No items to save.');
-        const total = calculateExcelTotal();
-        const customer = document.getElementById('excelCustomer').value.trim() || 'Excel Imported Bill';
-        const date = document.getElementById('excelDate').value.trim();
-
-        const details = excelImportedRows.map(r => `${r.item} (${r.qty}) @ Rs. ${r.rate} = ${r.amount}`).join('; ');
-
-        const bills = getStore('bills');
-        const newBill = {
-            id: Date.now(),
-            customer,
-            details,
-            total: String(total),
-            items: excelImportedRows,
-            date
-        };
-
-        bills.push(newBill);
-        setStore('bills', bills);
-        loadBills();
-        alert('Bill successfully saved to Bills!');
-        switchTab('bills');
-    }
-
-    function printCurrentExcel() {
-        const customer = document.getElementById('excelCustomer').value.trim() || 'Customer Invoice';
-        const date = document.getElementById('excelDate').value.trim() || new Date().toLocaleDateString();
-        const total = calculateExcelTotal();
-
-        const tempBill = {
-            customer,
-            date,
-            total,
-            items: excelImportedRows
-        };
-
-        const printArea = document.getElementById('printArea');
-        printArea.innerHTML = `
-            <div style="font-family: Arial, sans-serif; padding: 20px;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <h2 style="margin: 0; font-size: 24px; font-weight: bold;">ANWAR INVENTORY</h2>
-                    <p style="margin: 4px 0; font-size: 14px;">Excel Imported Invoice</p>
-                    <p style="margin: 4px 0; font-size: 12px; color: #555;">Contact: 03463997211</p>
-                </div>
-                <hr style="border: 0; border-top: 1px solid #888; margin-bottom: 15px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 14px;">
-                    <div><strong>Customer:</strong> ${escapeHTML(tempBill.customer)}</div>
-                    <div><strong>Date:</strong> ${escapeHTML(tempBill.date)}</div>
-                </div>
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px;">
-                    <thead>
-                        <tr style="background-color: #f2f2f2;">
-                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">#</th>
-                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">Date</th>
-                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">Item Name</th>
-                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">Qty</th>
-                            <th style="border:1px solid #ccc; padding:8px; text-align:left;">Unit Rate</th>
-                            <th style="border:1px solid #ccc; padding:8px; text-align:right;">Total (Rs)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${tempBill.items.map((item, idx) => `
-                            <tr>
-                                <td style="border:1px solid #ccc; padding:8px;">${idx+1}</td>
-                                <td style="border:1px solid #ccc; padding:8px;">${escapeHTML(item.date || '-')}</td>
-                                <td style="border:1px solid #ccc; padding:8px;">${escapeHTML(item.item || '-')}</td>
-                                <td style="border:1px solid #ccc; padding:8px;">${escapeHTML(item.qty || '-')}</td>
-                                <td style="border:1px solid #ccc; padding:8px;">${escapeHTML(item.rate || '-')}</td>
-                                <td style="border:1px solid #ccc; padding:8px; text-align:right;">Rs. ${escapeHTML(item.amount || '0')}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-                <div style="text-align: right; font-size: 16px; font-weight: bold;">
-                    Grand Total: Rs. ${Number(total).toLocaleString('en-PK')}
-                </div>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Choose Excel File</label>
+              <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 dark:file:bg-brand-900/30 dark:file:text-brand-400">
             </div>
-        `;
-        printArea.classList.remove('hidden');
-        window.print();
-        printArea.classList.add('hidden');
+
+            <div class="pt-2 flex gap-3">
+              <button onclick="processExcelImport()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-4 rounded-xl text-sm flex items-center justify-center space-x-2 shadow-md">
+                <i class="fa-solid fa-upload"></i>
+                <span>Parse & Save Excel</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Backup & Data Export Box -->
+          <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+            <div class="flex items-center space-x-3 text-blue-600 dark:text-blue-400">
+              <i class="fa-solid fa-database text-2xl"></i>
+              <h3 class="text-base font-bold text-slate-900 dark:text-white">Database Backup & Export</h3>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Export all your inventory data, bills, and party details into a JSON backup file to keep safe or transfer to another device.
+            </p>
+
+            <div class="pt-4 space-y-3">
+              <button onclick="exportFullBackup()" class="w-full bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-medium py-2.5 px-4 rounded-xl text-sm flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-download"></i>
+                <span>Download Full Data Backup (JSON)</span>
+              </button>
+
+              <button onclick="triggerRestoreBackup()" class="w-full bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-medium py-2.5 px-4 rounded-xl text-sm flex items-center justify-center space-x-2 border border-slate-300 dark:border-slate-600">
+                <i class="fa-solid fa-rotate-left"></i>
+                <span>Restore Backup File</span>
+              </button>
+              <input type="file" id="restore-file-input" accept=".json" onchange="processRestoreBackup(event)" class="hidden">
+            </div>
+          </div>
+        </div>
+
+        <!-- Excel Preview Table -->
+        <div id="excel-preview-container" class="hidden bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 space-y-4">
+          <div class="flex justify-between items-center">
+            <h4 class="font-bold text-sm text-slate-800 dark:text-white">Excel Import Data Preview</h4>
+            <button onclick="window.print()" class="text-xs px-3 py-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg text-slate-700 dark:text-slate-300">
+              <i class="fa-solid fa-print mr-1"></i> Print Imported View
+            </button>
+          </div>
+          <div class="overflow-x-auto max-h-80">
+            <table class="w-full text-left text-xs border-collapse" id="excel-preview-table">
+              <!-- Excel imported headers and data -->
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ================= MODALS & POPUPS ================= -->
+
+  <!-- Modal: Add Item -->
+  <div id="modal-add-item" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-lg text-slate-800 dark:text-white">Add Item Manual</h3>
+        <button onclick="closeModal('modal-add-item')" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="form-add-item" onsubmit="handleAddItem(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">SKU / Item Code</label>
+          <input type="text" id="item-code" required placeholder="e.g. PRD-101" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-100">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Item Name</label>
+          <input type="text" id="item-name" required placeholder="e.g. Premium Cotton Shirt" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-100">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Category</label>
+            <input type="text" id="item-category" placeholder="Apparel" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Unit Price (Rs)</label>
+            <input type="number" id="item-price" step="0.01" required placeholder="1500" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-100">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Initial Stock</label>
+            <input type="number" id="item-stock" required placeholder="50" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Reorder Level</label>
+            <input type="number" id="item-reorder" value="10" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-100">
+          </div>
+        </div>
+        <div class="pt-3 flex justify-end space-x-2">
+          <button type="button" onclick="closeModal('modal-add-item')" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium bg-brand-600 hover:bg-brand-700 text-white shadow-md">Save Item</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Party -->
+  <div id="modal-add-party" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-lg text-slate-800 dark:text-white">Add Party Manual</h3>
+        <button onclick="closeModal('modal-add-party')" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="form-add-party" onsubmit="handleAddParty(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Party Name</label>
+          <input type="text" id="party-name" required placeholder="e.g. Tariq Traders" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-100">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Party Type</label>
+            <select id="party-type" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-100">
+              <option value="Customer">Customer</option>
+              <option value="Supplier">Supplier</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Phone Number</label>
+            <input type="text" id="party-phone" placeholder="923001234567" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-100">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">City / Address</label>
+          <input type="text" id="party-address" placeholder="Lahore, Pakistan" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-100">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Opening Balance (Rs)</label>
+          <input type="number" id="party-balance" step="0.01" value="0" placeholder="0" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-100">
+          <span class="text-[10px] text-slate-400">Positive for Receivable (Receiving), Negative for Payable.</span>
+        </div>
+        <div class="pt-3 flex justify-end space-x-2">
+          <button type="button" onclick="closeModal('modal-add-party')" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium bg-brand-600 hover:bg-brand-700 text-white shadow-md">Save Party</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Create Bill -->
+  <div id="modal-create-bill" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
+        <h3 class="font-bold text-lg text-slate-800 dark:text-white">Create New Invoice Bill</h3>
+        <button onclick="closeModal('modal-create-bill')" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="form-create-bill" onsubmit="handleCreateBill(event)" class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Select Party</label>
+            <select id="bill-party-id" required class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-100">
+              <!-- Dynamic Options -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Invoice Type</label>
+            <select id="bill-type" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-100">
+              <option value="SALE">Sale Invoice</option>
+              <option value="PURCHASE">Purchase Bill</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Bill Date</label>
+            <input type="date" id="bill-date" required class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-100">
+          </div>
+        </div>
+
+        <!-- Add Items Row Container -->
+        <div class="space-y-2">
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Bill Items</label>
+          <div id="bill-items-container" class="space-y-2">
+            <!-- Dynamic item selector rows inserted here -->
+          </div>
+          <button type="button" onclick="addBillItemRow()" class="mt-2 text-xs text-brand-600 dark:text-brand-400 font-semibold flex items-center space-x-1 hover:underline">
+            <i class="fa-solid fa-plus-circle"></i>
+            <span>Add Row / Item</span>
+          </button>
+        </div>
+
+        <!-- Bill Totals -->
+        <div class="border-t border-slate-200 dark:border-slate-700 pt-3 flex flex-col items-end space-y-1 text-sm">
+          <div class="flex justify-between w-48 text-xs text-slate-500">
+            <span>Subtotal:</span>
+            <span id="bill-calc-subtotal" class="font-bold">Rs 0.00</span>
+          </div>
+          <div class="flex justify-between w-48 text-base font-bold text-slate-800 dark:text-white pt-1 border-t border-slate-200 dark:border-slate-700">
+            <span>Grand Total:</span>
+            <span id="bill-calc-total" class="text-brand-600 dark:text-brand-400">Rs 0.00</span>
+          </div>
+        </div>
+
+        <div class="pt-3 flex justify-end space-x-2">
+          <button type="button" onclick="closeModal('modal-create-bill')" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium bg-brand-600 hover:bg-brand-700 text-white shadow-md">Generate Bill</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal / Template: Printable Bill Layout -->
+  <div id="modal-view-bill" class="fixed inset-0 bg-slate-900/70 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white text-slate-900 rounded-2xl max-w-2xl w-full p-8 shadow-2xl space-y-6 relative my-8">
+      <button onclick="closeModal('modal-view-bill')" class="no-print absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl"><i class="fa-solid fa-xmark"></i></button>
+      
+      <!-- Printable area start -->
+      <div id="printable-invoice" class="space-y-6">
+        <!-- Header -->
+        <div class="flex justify-between items-start border-b border-slate-200 pb-4">
+          <div>
+            <h1 class="text-2xl font-black text-brand-700 uppercase tracking-wide">ANWAR INVENTORY</h1>
+            <p class="text-xs text-slate-500">Wholesale & Retail Management</p>
+            <p class="text-xs text-slate-500">Contact: +92 300 0000000</p>
+          </div>
+          <div class="text-right">
+            <span id="invoice-type-tag" class="inline-block px-3 py-1 rounded-md text-xs font-bold bg-brand-100 text-brand-800 uppercase tracking-wider">SALE INVOICE</span>
+            <div id="invoice-number" class="text-sm font-bold mt-1 text-slate-800">INV-0000</div>
+            <div id="invoice-date" class="text-xs text-slate-500">Date: 2026-01-01</div>
+          </div>
+        </div>
+
+        <!-- Bill To Info -->
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center text-xs">
+          <div>
+            <span class="text-slate-400 uppercase font-bold text-[10px] block">Bill To Party:</span>
+            <div id="invoice-party-name" class="font-bold text-slate-900 text-base">Client Name</div>
+            <div id="invoice-party-phone" class="text-slate-600">+92 300 0000000</div>
+          </div>
+          <div class="text-right">
+            <div id="invoice-party-address" class="text-slate-600">Address / City</div>
+          </div>
+        </div>
+
+        <!-- Itemized Table -->
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="border-b-2 border-slate-300 text-slate-600 uppercase font-bold">
+              <th class="py-2">#</th>
+              <th class="py-2">Item Description</th>
+              <th class="py-2 text-center">Qty</th>
+              <th class="py-2 text-right">Price</th>
+              <th class="py-2 text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody id="invoice-items-body" class="divide-y divide-slate-200">
+            <!-- Dynamic rows -->
+          </tbody>
+        </table>
+
+        <!-- Totals summary -->
+        <div class="flex justify-end pt-4 border-t border-slate-300">
+          <div class="w-48 space-y-1 text-xs">
+            <div class="flex justify-between text-slate-600">
+              <span>Subtotal:</span>
+              <span id="invoice-subtotal" class="font-semibold">Rs 0.00</span>
+            </div>
+            <div class="flex justify-between font-bold text-sm text-slate-900 pt-2 border-t border-slate-300">
+              <span>Total Amount:</span>
+              <span id="invoice-grand-total" class="text-brand-700">Rs 0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-6 border-t border-slate-200 text-center text-[10px] text-slate-400">
+          Thank you for doing business with Anwar Inventory! Software auto-generated bill.
+        </div>
+      </div>
+      <!-- Printable area end -->
+
+      <!-- Action Buttons -->
+      <div class="no-print flex justify-between items-center pt-4 border-t border-slate-200">
+        <button id="whatsapp-share-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2 rounded-xl flex items-center space-x-2">
+          <i class="fa-brands fa-whatsapp text-base"></i>
+          <span>Share Bill on WhatsApp</span>
+        </button>
+        <div class="flex space-x-2">
+          <button onclick="window.print()" class="bg-slate-900 text-white hover:bg-slate-800 text-xs font-semibold px-4 py-2 rounded-xl flex items-center space-x-2">
+            <i class="fa-solid fa-print"></i>
+            <span>Print Invoice</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- Javascript Core Application Logic -->
+  <script>
+    // INITIAL SYSTEM DATA STRUCTURES
+    let state = {
+      items: [],
+      parties: [],
+      bills: []
+    };
+
+    // SAMPLE INITIAL DEMO DATA
+    const sampleItems = [
+      { id: '1', code: 'PRD-101', name: 'Cotton Shirt L', category: 'Apparel', price: 1500, stock: 45, reorder: 10 },
+      { id: '2', code: 'PRD-102', name: 'Denim Jeans 32', category: 'Apparel', price: 2800, stock: 8, reorder: 10 },
+      { id: '3', code: 'PRD-103', name: 'Leather Wallet', category: 'Accessories', price: 950, stock: 60, reorder: 15 }
+    ];
+
+    const sampleParties = [
+      { id: '1', name: 'Tariq Wholesale', type: 'Customer', phone: '923001234567', address: 'Karachi Bazar', balance: 5000 },
+      { id: '2', name: 'Al-Madina Fabrics', type: 'Supplier', phone: '923219876543', address: 'Faisalabad Market', balance: -12000 }
+    ];
+
+    const sampleBills = [
+      {
+        id: '1',
+        invoiceNo: 'INV-1001',
+        partyId: '1',
+        partyName: 'Tariq Wholesale',
+        date: '2026-03-01',
+        type: 'SALE',
+        items: [{ itemId: '1', itemName: 'Cotton Shirt L', qty: 2, price: 1500, total: 3000 }],
+        grandTotal: 3000
+      }
+    ];
+
+    // APPLICATION INITIALIZATION
+    window.onload = function() {
+      loadStorageData();
+      startLiveClock();
+      setupMobileMenu();
+      switchTab('dashboard');
+    };
+
+    // LOCAL STORAGE MANAGEMENT
+    function loadStorageData() {
+      const storedItems = localStorage.getItem('anwar_items');
+      const storedParties = localStorage.getItem('anwar_parties');
+      const storedBills = localStorage.getItem('anwar_bills');
+
+      state.items = storedItems ? JSON.parse(storedItems) : sampleItems;
+      state.parties = storedParties ? JSON.parse(storedParties) : sampleParties;
+      state.bills = storedBills ? JSON.parse(storedBills) : sampleBills;
+
+      if (!storedItems) saveStorageData();
     }
 
-    // Initialize application on load
-    window.addEventListener('load', () => {
-        loadInv();
-        loadParties();
-        loadBills();
-        if (window.lucide) lucide.createIcons();
-    });
-</script>
+    function saveStorageData() {
+      localStorage.setItem('anwar_items', JSON.stringify(state.items));
+      localStorage.setItem('anwar_parties', JSON.stringify(state.parties));
+      localStorage.setItem('anwar_bills', JSON.stringify(state.bills));
+      refreshAllViews();
+    }
+
+    function refreshAllViews() {
+      renderDashboardStats();
+      renderInventoryTable();
+      renderPartiesTable();
+      renderBillsTable();
+      renderPartyLedgerTable();
+      populateCategoryDropdown();
+      populatePartySelects();
+    }
+
+    // LIVE CLOCK & DATE UPDATER
+    function startLiveClock() {
+      const timeElem = document.getElementById('live-time');
+      const dateElem = document.getElementById('live-date');
+
+      function update() {
+        const now = new Date();
+        timeElem.textContent = now.toLocaleTimeString();
+        dateElem.textContent = now.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+      }
+      update();
+      setInterval(update, 1000);
+    }
+
+    // UI TAB SWITCHING
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.remove('bg-brand-600', 'text-white', 'shadow-md');
+        el.classList.add('hover:bg-slate-800', 'text-slate-300');
+      });
+
+      const targetSection = document.getElementById(`section-${tabId}`);
+      if (targetSection) targetSection.classList.remove('hidden');
+
+      const targetNav = document.getElementById(`nav-${tabId}`);
+      if (targetNav) {
+        targetNav.classList.add('bg-brand-600', 'text-white', 'shadow-md');
+        targetNav.classList.remove('hover:bg-slate-800', 'text-slate-300');
+      }
+
+      // Update Header Title
+      const titles = {
+        'dashboard': 'Overview Dashboard',
+        'inventory': '1. Stock & Item Inventory',
+        'parties': '2. Party Directory (Customers/Suppliers)',
+        'bills': '3. Billing & Date-wise Invoices',
+        'party-ledger': '4. Total Party Ledger Balance',
+        'excel-import': '5. Excel Auto Import & Backup'
+      };
+      document.getElementById('page-title').textContent = titles[tabId] || 'Dashboard';
+      refreshAllViews();
+
+      // Close mobile sidebar if open
+      document.getElementById('sidebar').classList.add('-translate-x-full');
+    }
+
+    function setupMobileMenu() {
+      const btn = document.getElementById('mobile-menu-btn');
+      const sidebar = document.getElementById('sidebar');
+      btn.addEventListener('click', () => {
+        sidebar.classList.toggle('-translate-x-full');
+      });
+    }
+
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle('dark');
+    }
+
+    // DASHBOARD STATS RENDERER
+    function renderDashboardStats() {
+      document.getElementById('stat-total-items').textContent = state.items.length;
+      const lowStockCount = state.items.filter(i => Number(i.stock) <= Number(i.reorder)).length;
+      document.getElementById('stat-low-stock').textContent = `${lowStockCount} items below reorder level`;
+
+      document.getElementById('stat-total-parties').textContent = state.parties.length;
+
+      let totalReceivable = 0;
+      let totalPayable = 0;
+
+      state.parties.forEach(p => {
+        const bal = Number(p.balance) || 0;
+        if (bal > 0) totalReceivable += bal;
+        else if (bal < 0) totalPayable += Math.abs(bal);
+      });
+
+      document.getElementById('stat-total-receivable').textContent = `Rs ${totalReceivable.toLocaleString()}`;
+      document.getElementById('stat-total-payable').textContent = `Rs ${totalPayable.toLocaleString()}`;
+    }
+
+    // INVENTORY BLOCK LOGIC
+    function renderInventoryTable() {
+      const search = document.getElementById('inventory-search').value.toLowerCase();
+      const cat = document.getElementById('inventory-filter-category').value;
+      const tbody = document.getElementById('inventory-table-body');
+      tbody.innerHTML = '';
+
+      const filtered = state.items.filter(item => {
+        const matchesSearch = item.name.toLowerCase().includes(search) || item.code.toLowerCase().includes(search);
+        const matchesCat = cat === 'ALL' || item.category === cat;
+        return matchesSearch && matchesCat;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400">No inventory items found.</td></tr>`;
+        return;
+      }
+
+      filtered.forEach(item => {
+        const isLow = Number(item.stock) <= Number(item.reorder);
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors";
+        tr.innerHTML = `
+          <td class="p-4 font-mono font-medium text-xs text-slate-500">${item.code}</td>
+          <td class="p-4 font-semibold text-slate-800 dark:text-slate-100">${item.name}</td>
+          <td class="p-4"><span class="px-2.5 py-1 text-xs rounded-lg bg-slate-100 dark:bg-slate-700 font-medium">${item.category || 'General'}</span></td>
+          <td class="p-4 text-right font-bold text-slate-800 dark:text-slate-100">Rs ${Number(item.price).toLocaleString()}</td>
+          <td class="p-4 text-center">
+            <span class="px-2.5 py-1 text-xs font-bold rounded-full ${isLow ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'}">
+              ${item.stock}
+            </span>
+          </td>
+          <td class="p-4 text-center text-xs text-slate-400">${item.reorder || 0}</td>
+          <td class="p-4 text-center space-x-2">
+            <button onclick="adjustStock('${item.id}', 1)" class="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs"><i class="fa-solid fa-plus"></i></button>
+            <button onclick="adjustStock('${item.id}', -1)" class="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs"><i class="fa-solid fa-minus"></i></button>
+            <button onclick="deleteItem('${item.id}')" class="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 text-xs"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function populateCategoryDropdown() {
+      const select = document.getElementById('inventory-filter-category');
+      const categories = [...new Set(state.items.map(i => i.category || 'General'))];
+      select.innerHTML = '<option value="ALL">All Categories</option>';
+      categories.forEach(c => {
+        select.innerHTML += `<option value="${c}">${c}</option>`;
+      });
+    }
+
+    function handleAddItem(e) {
+      e.preventDefault();
+      const code = document.getElementById('item-code').value;
+      const name = document.getElementById('item-name').value;
+      const category = document.getElementById('item-category').value || 'General';
+      const price = parseFloat(document.getElementById('item-price').value);
+      const stock = parseInt(document.getElementById('item-stock').value);
+      const reorder = parseInt(document.getElementById('item-reorder').value) || 0;
+
+      const newItem = { id: Date.now().toString(), code, name, category, price, stock, reorder };
+      state.items.push(newItem);
+      saveStorageData();
+
+      closeModal('modal-add-item');
+      showToast('Item saved successfully!', 'success');
+      document.getElementById('form-add-item').reset();
+    }
+
+    function adjustStock(itemId, delta) {
+      const item = state.items.find(i => i.id === itemId);
+      if (item) {
+        item.stock = Math.max(0, Number(item.stock) + delta);
+        saveStorageData();
+        showToast(`Stock updated for ${item.name}`, 'info');
+      }
+    }
+
+    function deleteItem(itemId) {
+      state.items = state.items.filter(i => i.id !== itemId);
+      saveStorageData();
+      showToast('Item deleted', 'warning');
+    }
+
+    // PARTIES BLOCK LOGIC
+    function renderPartiesTable() {
+      const search = document.getElementById('party-search').value.toLowerCase();
+      const filterType = document.getElementById('party-filter-type').value;
+      const tbody = document.getElementById('parties-table-body');
+      tbody.innerHTML = '';
+
+      const filtered = state.parties.filter(p => {
+        const matchesSearch = p.name.toLowerCase().includes(search) || (p.phone && p.phone.includes(search));
+        const matchesType = filterType === 'ALL' || p.type === filterType;
+        return matchesSearch && matchesType;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400">No parties found.</td></tr>`;
+        return;
+      }
+
+      filtered.forEach(p => {
+        const bal = Number(p.balance) || 0;
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors";
+        tr.innerHTML = `
+          <td class="p-4 font-semibold text-slate-800 dark:text-slate-100">${p.name}</td>
+          <td class="p-4"><span class="px-2.5 py-1 text-xs rounded-lg ${p.type === 'Customer' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400'} font-medium">${p.type}</span></td>
+          <td class="p-4 text-xs font-mono text-slate-500">${p.phone || '-'}</td>
+          <td class="p-4 text-xs text-slate-500">${p.address || '-'}</td>
+          <td class="p-4 text-right font-bold ${bal >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}">
+            Rs ${Math.abs(bal).toLocaleString()} ${bal >= 0 ? '(Rec)' : '(Pay)'}
+          </td>
+          <td class="p-4 text-center space-x-2">
+            <button onclick="deleteParty('${p.id}')" class="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:hover:bg-rose-900/50 text-xs"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function handleAddParty(e) {
+      e.preventDefault();
+      const name = document.getElementById('party-name').value;
+      const type = document.getElementById('party-type').value;
+      const phone = document.getElementById('party-phone').value;
+      const address = document.getElementById('party-address').value;
+      const balance = parseFloat(document.getElementById('party-balance').value) || 0;
+
+      const newParty = { id: Date.now().toString(), name, type, phone, address, balance };
+      state.parties.push(newParty);
+      saveStorageData();
+
+      closeModal('modal-add-party');
+      showToast('Party saved successfully!', 'success');
+      document.getElementById('form-add-party').reset();
+    }
+
+    function deleteParty(partyId) {
+      state.parties = state.parties.filter(p => p.id !== partyId);
+      saveStorageData();
+      showToast('Party removed', 'warning');
+    }
+
+    function populatePartySelects() {
+      const selectBill = document.getElementById('bill-party-id');
+      const filterParty = document.getElementById('bill-filter-party');
+      selectBill.innerHTML = '';
+      filterParty.innerHTML = '<option value="ALL">All Parties</option>';
+
+      state.parties.forEach(p => {
+        selectBill.innerHTML += `<option value="${p.id}">${p.name} (${p.type})</option>`;
+        filterParty.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+      });
+    }
+
+    // BILLS & INVOICES BLOCK LOGIC
+    function renderBillsTable() {
+      const dateFilter = document.getElementById('bill-filter-date').value;
+      const partyFilter = document.getElementById('bill-filter-party').value;
+      const tbody = document.getElementById('bills-table-body');
+      tbody.innerHTML = '';
+
+      const filtered = state.bills.filter(b => {
+        const matchesDate = !dateFilter || b.date === dateFilter;
+        const matchesParty = partyFilter === 'ALL' || b.partyId === partyFilter;
+        return matchesDate && matchesParty;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400">No bills found for selected date/party.</td></tr>`;
+        return;
+      }
+
+      filtered.forEach(b => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors";
+        tr.innerHTML = `
+          <td class="p-4 font-mono font-bold text-brand-600 dark:text-brand-400">${b.invoiceNo}</td>
+          <td class="p-4 text-xs text-slate-500">${b.date}</td>
+          <td class="p-4 font-semibold text-slate-800 dark:text-slate-100">${b.partyName}</td>
+          <td class="p-4"><span class="px-2 py-0.5 text-[10px] uppercase font-bold rounded ${b.type === 'SALE' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}">${b.type}</span></td>
+          <td class="p-4 text-right font-bold text-slate-800 dark:text-slate-100">Rs ${Number(b.grandTotal).toLocaleString()}</td>
+          <td class="p-4 text-center space-x-2">
+            <button onclick="viewInvoice('${b.id}')" class="px-2.5 py-1 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 dark:bg-brand-900/30 dark:text-brand-400 text-xs font-medium">
+              <i class="fa-solid fa-eye mr-1"></i> View / Print
+            </button>
+            <button onclick="deleteBill('${b.id}')" class="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function addBillItemRow() {
+      const container = document.getElementById('bill-items-container');
+      const rowId = Date.now();
+      const div = document.createElement('div');
+      div.className = "flex items-center space-x-2 bill-item-row";
+      div.id = `bill-row-${rowId}`;
+
+      let itemOptions = state.items.map(i => `<option value="${i.id}" data-price="${i.price}">${i.name} (Stock: ${i.stock}) - Rs ${i.price}</option>`).join('');
+
+      div.innerHTML = `
+        <select onchange="updateRowCalculations()" class="item-select flex-1 px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-100">
+          ${itemOptions}
+        </select>
+        <input type="number" value="1" min="1" onchange="updateRowCalculations()" class="item-qty w-20 px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-100" placeholder="Qty">
+        <button type="button" onclick="removeBillRow('bill-row-${rowId}')" class="text-rose-500 hover:text-rose-700 p-2"><i class="fa-solid fa-trash-can"></i></button>
+      `;
+      container.appendChild(div);
+      updateRowCalculations();
+    }
+
+    function removeBillRow(rowId) {
+      const row = document.getElementById(rowId);
+      if (row) row.remove();
+      updateRowCalculations();
+    }
+
+    function updateRowCalculations() {
+      const rows = document.querySelectorAll('.bill-item-row');
+      let grandTotal = 0;
+
+      rows.forEach(row => {
+        const select = row.querySelector('.item-select');
+        const qtyInput = row.querySelector('.item-qty');
+        const selectedOption = select.options[select.selectedIndex];
+        
+        if (selectedOption) {
+          const price = parseFloat(selectedOption.getAttribute('data-price')) || 0;
+          const qty = parseInt(qtyInput.value) || 0;
+          grandTotal += price * qty;
+        }
+      });
+
+      document.getElementById('bill-calc-subtotal').textContent = `Rs ${grandTotal.toFixed(2)}`;
+      document.getElementById('bill-calc-total').textContent = `Rs ${grandTotal.toFixed(2)}`;
+    }
+
+    function handleCreateBill(e) {
+      e.preventDefault();
+      const partyId = document.getElementById('bill-party-id').value;
+      const party = state.parties.find(p => p.id === partyId);
+      const billType = document.getElementById('bill-type').value;
+      const date = document.getElementById('bill-date').value || new Date().toISOString().split('T')[0];
+
+      const rows = document.querySelectorAll('.bill-item-row');
+      if (rows.length === 0) {
+        showToast('Please add at least one item to the bill.', 'warning');
+        return;
+      }
+
+      let billItems = [];
+      let grandTotal = 0;
+
+      rows.forEach(row => {
+        const select = row.querySelector('.item-select');
+        const qty = parseInt(row.querySelector('.item-qty').value) || 1;
+        const itemId = select.value;
+        const itemObj = state.items.find(i => i.id === itemId);
+
+        if (itemObj) {
+          const total = itemObj.price * qty;
+          grandTotal += total;
+          billItems.push({
+            itemId: itemObj.id,
+            itemName: itemObj.name,
+            qty: qty,
+            price: itemObj.price,
+            total: total
+          });
+
+          // Stock adjustment
+          if (billType === 'SALE') {
+            itemObj.stock = Math.max(0, Number(itemObj.stock) - qty);
+          } else {
+            itemObj.stock = Number(itemObj.stock) + qty;
+          }
+        }
+      });
+
+      // Party balance adjustment
+      if (party) {
+        if (billType === 'SALE') party.balance = Number(party.balance) + grandTotal; // Receivable
+        else party.balance = Number(party.balance) - grandTotal; // Payable
+      }
+
+      const invoiceNo = 'INV-' + (1000 + state.bills.length + 1);
+      const newBill = {
+        id: Date.now().toString(),
+        invoiceNo,
+        partyId,
+        partyName: party ? party.name : 'Cash Customer',
+        date,
+        type: billType,
+        items: billItems,
+        grandTotal
+      };
+
+      state.bills.push(newBill);
+      saveStorageData();
+
+      closeModal('modal-create-bill');
+      showToast('Invoice created successfully!', 'success');
+      viewInvoice(newBill.id);
+    }
+
+    function viewInvoice(billId) {
+      const bill = state.bills.find(b => b.id === billId);
+      if (!bill) return;
+
+      const party = state.parties.find(p => p.id === bill.partyId) || {};
+
+      document.getElementById('invoice-type-tag').textContent = `${bill.type} INVOICE`;
+      document.getElementById('invoice-number').textContent = bill.invoiceNo;
+      document.getElementById('invoice-date').textContent = `Date: ${bill.date}`;
+      document.getElementById('invoice-party-name').textContent = bill.partyName;
+      document.getElementById('invoice-party-phone').textContent = party.phone ? `Phone: ${party.phone}` : '';
+      document.getElementById('invoice-party-address').textContent = party.address || 'Address N/A';
+
+      const tbody = document.getElementById('invoice-items-body');
+      tbody.innerHTML = '';
+      bill.items.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="py-2 text-slate-400">${index + 1}</td>
+          <td class="py-2 font-semibold text-slate-800">${item.itemName}</td>
+          <td class="py-2 text-center">${item.qty}</td>
+          <td class="py-2 text-right">Rs ${Number(item.price).toLocaleString()}</td>
+          <td class="py-2 text-right font-bold">Rs ${Number(item.total).toLocaleString()}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('invoice-subtotal').textContent = `Rs ${Number(bill.grandTotal).toLocaleString()}`;
+      document.getElementById('invoice-grand-total').textContent = `Rs ${Number(bill.grandTotal).toLocaleString()}`;
+
+      // WhatsApp Share Configuration
+      const waBtn = document.getElementById('whatsapp-share-btn');
+      let waText = `*ANWAR INVENTORY - INVOICE*\n`;
+      waText += `Invoice #: ${bill.invoiceNo}\n`;
+      waText += `Party: ${bill.partyName}\n`;
+      waText += `Total: Rs ${bill.grandTotal}\n\n`;
+      waText += `*Items Summary:*\n`;
+      bill.items.forEach(i => {
+        waText += `- ${i.itemName} (x${i.qty}) : Rs ${i.total}\n`;
+      });
+      waText += `\nThank you for doing business with us!`;
+
+      const targetPhone = party.phone ? party.phone.replace(/[^0-9]/g, '') : '';
+      waBtn.onclick = function() {
+        const url = targetPhone ? `https://wa.me/${targetPhone}?text=${encodeURIComponent(waText)}` : `https://wa.me/?text=${encodeURIComponent(waText)}`;
+        window.open(url, '_blank');
+      };
+
+      openModal('modal-view-bill');
+    }
+
+    function deleteBill(billId) {
+      state.bills = state.bills.filter(b => b.id !== billId);
+      saveStorageData();
+      showToast('Bill removed', 'warning');
+    }
+
+    // TOTAL PARTY LEDGER BLOCK
+    function renderPartyLedgerTable() {
+      const tbody = document.getElementById('party-ledger-table-body');
+      tbody.innerHTML = '';
+
+      let totalDebit = 0;
+      let totalCredit = 0;
+
+      state.parties.forEach(p => {
+        const bal = Number(p.balance) || 0;
+        const isDebit = bal >= 0;
+        if (isDebit) totalDebit += bal;
+        else totalCredit += Math.abs(bal);
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors";
+        tr.innerHTML = `
+          <td class="p-4 font-semibold text-slate-800 dark:text-slate-100">${p.name}</td>
+          <td class="p-4 text-xs font-mono text-slate-500">${p.phone || '-'}</td>
+          <td class="p-4 text-xs text-slate-400">${p.type}</td>
+          <td class="p-4 text-right font-bold text-emerald-600 dark:text-emerald-400">${isDebit ? 'Rs ' + bal.toLocaleString() : '-'}</td>
+          <td class="p-4 text-right font-bold text-rose-600 dark:text-rose-400">${!isDebit ? 'Rs ' + Math.abs(bal).toLocaleString() : '-'}</td>
+          <td class="p-4 text-right">
+            <span class="px-2.5 py-1 text-xs font-bold rounded-lg ${isDebit ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
+              ${isDebit ? 'Receivable' : 'Payable'}
+            </span>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('ledger-summary-receivables').textContent = `Rs ${totalDebit.toLocaleString()}`;
+      document.getElementById('ledger-summary-payables').textContent = `Rs ${totalCredit.toLocaleString()}`;
+      document.getElementById('ledger-summary-net').textContent = `Rs ${(totalDebit - totalCredit).toLocaleString()}`;
+    }
+
+    // EXCEL IMPORT & BACKUP MANAGEMENT
+    function processExcelImport() {
+      const fileInput = document.getElementById('excel-file-input');
+      const target = document.getElementById('excel-import-target').value;
+      const file = fileInput.files[0];
+
+      if (!file) {
+        showToast('Please select an Excel or CSV file first.', 'warning');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const json = XLSX.utils.sheet_to_json(worksheet);
+
+          if (json.length === 0) {
+            showToast('The selected file contains no data.', 'warning');
+            return;
+          }
+
+          if (target === 'items') {
+            json.forEach(row => {
+              state.items.push({
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 4),
+                code: row['SKU'] || row['Code'] || 'PRD-' + Math.floor(Math.random() * 1000),
+                name: row['Item Name'] || row['Name'] || 'Imported Item',
+                category: row['Category'] || 'General',
+                price: parseFloat(row['Price'] || row['Unit Price']) || 0,
+                stock: parseInt(row['Stock'] || row['Qty']) || 0,
+                reorder: parseInt(row['Reorder']) || 5
+              });
+            });
+            showToast(`Successfully imported ${json.length} items!`, 'success');
+          } else {
+            json.forEach(row => {
+              state.parties.push({
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 4),
+                name: row['Party Name'] || row['Name'] || 'Imported Party',
+                type: row['Type'] || 'Customer',
+                phone: row['Phone'] || '',
+                address: row['Address'] || '',
+                balance: parseFloat(row['Balance']) || 0
+              });
+            });
+            showToast(`Successfully imported ${json.length} parties!`, 'success');
+          }
+
+          saveStorageData();
+          renderExcelPreview(json);
+        } catch (err) {
+          showToast('Failed to parse Excel file. Check format.', 'error');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function renderExcelPreview(data) {
+      const container = document.getElementById('excel-preview-container');
+      const table = document.getElementById('excel-preview-table');
+      container.classList.remove('hidden');
+      table.innerHTML = '';
+
+      if (data.length === 0) return;
+
+      const headers = Object.keys(data[0]);
+      let thead = `<tr class="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">`;
+      headers.forEach(h => thead += `<th class="p-2 border border-slate-200 dark:border-slate-600">${h}</th>`);
+      thead += `</tr>`;
+
+      let tbody = ``;
+      data.forEach(row => {
+        tbody += `<tr class="border-b border-slate-200 dark:border-slate-700">`;
+        headers.forEach(h => tbody += `<td class="p-2 border border-slate-200 dark:border-slate-600">${row[h] || ''}</td>`);
+        tbody += `</tr>`;
+      });
+
+      table.innerHTML = thead + tbody;
+    }
+
+    function exportFullBackup() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+      const dlAnchorElem = document.createElement('a');
+      dlAnchorElem.setAttribute("href", dataStr);
+      dlAnchorElem.setAttribute("download", `Anwar_Inventory_Backup_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(dlAnchorElem);
+      dlAnchorElem.click();
+      dlAnchorElem.remove();
+      showToast('Database backup downloaded!', 'success');
+    }
+
+    function triggerRestoreBackup() {
+      document.getElementById('restore-file-input').click();
+    }
+
+    function processRestoreBackup(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const restored = JSON.parse(e.target.result);
+          if (restored.items && restored.parties && restored.bills) {
+            state = restored;
+            saveStorageData();
+            showToast('Backup restored successfully!', 'success');
+          } else {
+            showToast('Invalid backup file structure.', 'error');
+          }
+        } catch (err) {
+          showToast('Failed to read backup JSON file.', 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // MODAL & UTILITY FUNCTIONS
+    function openModal(id) {
+      document.getElementById(id).classList.remove('hidden');
+      if (id === 'modal-create-bill') {
+        const container = document.getElementById('bill-items-container');
+        container.innerHTML = '';
+        addBillItemRow();
+      }
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+
+      const colors = {
+        success: 'bg-emerald-600 text-white',
+        warning: 'bg-amber-500 text-white',
+        error: 'bg-rose-600 text-white',
+        info: 'bg-slate-800 text-white'
+      };
+
+      toast.className = `px-4 py-3 rounded-xl shadow-xl text-xs font-semibold flex items-center space-x-2 transition-all transform translate-y-2 ${colors[type] || colors.info}`;
+      toast.innerHTML = `<i class="fa-solid fa-circle-info"></i><span>${message}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', '-translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+  </script>
 </body>
 </html>
