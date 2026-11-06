@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anwar Inventory</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Tesseract.js OCR for text extraction -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <!-- Google Font (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 h-full flex flex-col justify-between select-none">
+
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-30 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+            <div class="p-2 bg-brand-600 text-white rounded-xl shadow-md flex items-center justify-center">
+                <i data-lucide="store" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="text-base font-extrabold tracking-tight leading-tight">Anwar Inventory</h1>
+                <p class="text-[10px] text-gray-500 dark:text-gray-400 font-medium">Smart Stock & Bill Ledger</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button onclick="toggleDarkMode()" class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                <i data-lucide="moon" id="themeIcon" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Dynamic Content Scrollable Container -->
+    <main class="flex-1 overflow-y-auto px-4 py-4 max-w-md mx-auto w-full pb-24">
+        
+        <!-- DASHBOARD TAB -->
+        <section id="tab-dashboard" class="tab-content space-y-4">
+            <!-- Summary Stats -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div class="flex items-center justify-between text-gray-500 dark:text-gray-400 mb-2">
+                        <span class="text-xs font-semibold">Total Items</span>
+                        <i data-lucide="package" class="w-4 h-4 text-brand-500"></i>
+                    </div>
+                    <span id="dashTotalItems" class="text-2xl font-black">0</span>
+                    <p class="text-[10px] text-gray-400 mt-1">In Stock</p>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                    <div class="flex items-center justify-between text-gray-500 dark:text-gray-400 mb-2">
+                        <span class="text-xs font-semibold">Receivables</span>
+                        <i data-lucide="arrow-down-left" class="w-4 h-4 text-emerald-500"></i>
+                    </div>
+                    <span id="dashTotalReceivable" class="text-2xl font-black text-emerald-600 dark:text-emerald-400">Rs 0</span>
+                    <p class="text-[10px] text-gray-400 mt-1">Pending from Parties</p>
+                </div>
+            </div>
+
+            <!-- Action Card Banner -->
+            <div class="bg-gradient-to-r from-brand-600 to-indigo-700 rounded-2xl p-4 text-white shadow-lg space-y-3">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 class="font-bold text-base">Quick Bill OCR Scanner</h2>
+                        <p class="text-xs text-indigo-100 mt-0.5">Scan paper bill to directly record entry into party ledger</p>
+                    </div>
+                    <i data-lucide="camera" class="w-6 h-6 text-brand-100"></i>
+                </div>
+                <button onclick="switchTab('tab-scan')" class="w-full py-2.5 bg-white text-brand-700 font-bold rounded-xl text-xs shadow flex items-center justify-center space-x-2 active:scale-95 transition">
+                    <i data-lucide="scan-line" class="w-4 h-4"></i>
+                    <span>Scan & Post Bill</span>
+                </button>
+            </div>
+
+            <!-- Low Stock Notification -->
+            <div id="lowStockAlert" class="hidden bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-3 text-amber-800 dark:text-amber-200 text-xs flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 flex-shrink-0"></i>
+                    <span id="lowStockMessage">Some items have reached low stock!</span>
+                </div>
+                <button onclick="switchTab('tab-inventory')" class="underline font-bold text-amber-900 dark:text-amber-100">View</button>
+            </div>
+
+            <!-- Recent Activity Block -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">Recent Transactions</h3>
+                    <button onclick="switchTab('tab-parties')" class="text-xs text-brand-600 dark:text-brand-400 font-semibold">View All</button>
+                </div>
+                <div id="recentEntriesList" class="space-y-2 divide-y divide-gray-100 dark:divide-gray-700">
+                    <p class="text-xs text-gray-400 py-4 text-center">No transactions recorded yet.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- INVENTORY TAB -->
+        <section id="tab-inventory" class="tab-content hidden space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-base font-bold">Inventory Items</h2>
+                <button onclick="openModal('addItemModal')" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1 shadow">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Add Item</span>
+                </button>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="relative">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3 text-gray-400"></i>
+                <input type="text" id="inventorySearch" placeholder="Search item name or category..." onkeyup="renderInventory()" class="w-full bg-white dark:bg-gray-800 pl-10 pr-4 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+
+            <!-- Inventory Items List -->
+            <div id="inventoryList" class="space-y-2">
+                <!-- Rendered dynamically -->
+            </div>
+        </section>
+
+        <!-- SCAN BILL & DIRECT ENTRY TAB -->
+        <section id="tab-scan" class="tab-content hidden space-y-4">
+            <h2 class="text-base font-bold">Bill Image OCR & Direct Entry</h2>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Snap a photo or upload a paper receipt bill. Extracted values will directly post into the Party ledger.</p>
+
+            <!-- Image Upload Target Box -->
+            <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-center space-y-3">
+                <div id="imagePreviewContainer" class="hidden relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 max-h-52 mx-auto">
+                    <img id="scannedImagePreview" class="w-full object-cover h-48" src="#" alt="Scanned Bill Receipt">
+                </div>
+
+                <div id="uploadPlaceholder" class="py-4 flex flex-col items-center">
+                    <div class="p-3 bg-brand-50 dark:bg-gray-700 text-brand-600 dark:text-brand-300 rounded-full mb-2">
+                        <i data-lucide="camera" class="w-6 h-6"></i>
+                    </div>
+                    <p class="text-xs font-semibold">Select image or open smartphone camera</p>
+                    <p class="text-[10px] text-gray-400 mt-1">Supports JPG, PNG paper invoices</p>
+                </div>
+
+                <div class="flex gap-2 justify-center">
+                    <label class="cursor-pointer bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow flex items-center space-x-1">
+                        <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                        <span>Upload / Capture Bill</span>
+                        <input type="file" id="billFileInput" accept="image/*" capture="environment" onchange="handleBillImageUpload(event)" class="hidden">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Status Indicator -->
+            <div id="ocrStatus" class="hidden bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-xl p-3 text-xs text-indigo-700 dark:text-indigo-300 flex items-center space-x-2">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-600"></div>
+                <span id="ocrStatusText">Processing and parsing image text...</span>
+            </div>
+
+            <!-- Direct Entry Form -->
+            <form id="scannedEntryForm" onsubmit="saveParsedBill(event)" class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-3">
+                <h3 class="font-bold text-xs uppercase tracking-wider text-gray-400">Bill Entry Details</h3>
+                
+                <div>
+                    <label class="text-xs font-semibold text-gray-600 dark:text-gray-300">Party / Customer Name</label>
+                    <input type="text" id="scanPartyName" required placeholder="Select or type Party Name" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600 dark:text-gray-300">Total Amount (Rs)</label>
+                        <input type="number" id="scanTotalAmount" required placeholder="0.00" step="0.01" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-xs font-bold text-emerald-600 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600 dark:text-gray-300">Entry Type</label>
+                        <select id="scanBillType" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="Sale">Sale (Udhari/Credit)</option>
+                            <option value="Payment Received">Payment Received</option>
+                            <option value="Purchase">Purchase / Stock In</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-xs font-semibold text-gray-600 dark:text-gray-300">Particulars / Items (Optional)</label>
+                    <textarea id="scanItemsDescription" rows="2" placeholder="Item description or scanned breakdown" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
+                </div>
+
+                <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md flex items-center justify-center space-x-1 active:scale-95 transition">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    <span>Post Direct Entry to Party Ledger</span>
+                </button>
+            </form>
+        </section>
+
+        <!-- PARTIES & LEDGER TAB -->
+        <section id="tab-parties" class="tab-content hidden space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-base font-bold">Party Ledgers</h2>
+                <button onclick="openModal('addPartyModal')" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1 shadow">
+                    <i data-lucide="user-plus" class="w-4 h-4"></i>
+                    <span>Add Party</span>
+                </button>
+            </div>
+
+            <!-- Party Search -->
+            <div class="relative">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3.5 top-3 text-gray-400"></i>
+                <input type="text" id="partySearch" placeholder="Search party name or phone..." onkeyup="renderParties()" class="w-full bg-white dark:bg-gray-800 pl-10 pr-4 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            </div>
+
+            <!-- Party List Container -->
+            <div id="partiesList" class="space-y-2">
+                <!-- Dynamically filled -->
+            </div>
+        </section>
+
+        <!-- INVOICE GENERATOR TAB -->
+        <section id="tab-billing" class="tab-content hidden space-y-4">
+            <h2 class="text-base font-bold">Create Invoice Bill</h2>
+            
+            <form id="manualInvoiceForm" onsubmit="createInvoice(event)" class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-3">
+                <div>
+                    <label class="text-xs font-semibold text-gray-600 dark:text-gray-300">Select Party / Customer</label>
+                    <select id="invoicePartySelect" required class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        <!-- Options generated dynamically -->
+                    </select>
+                </div>
+
+                <!-- Select Product to Add -->
+                <div class="bg-gray-50 dark:bg-gray-750 p-3 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2">
+                    <span class="text-xs font-bold text-gray-500">Add Stock Item</span>
+                    <div class="grid grid-cols-12 gap-2">
+                        <select id="invoiceItemSelect" class="col-span-6 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-2 py-2 text-xs">
+                            <!-- Options generated dynamically -->
+                        </select>
+                        <input type="number" id="invoiceItemQty" min="1" value="1" placeholder="Qty" class="col-span-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-2 py-2 text-xs text-center">
+                        <button type="button" onclick="addItemToInvoiceList()" class="col-span-3 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl py-2">Add</button>
+                    </div>
+                </div>
+
+                <!-- Added Items List Table -->
+                <div class="border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                            <tr>
+                                <th class="p-2 font-semibold">Item</th>
+                                <th class="p-2 text-center font-semibold">Qty</th>
+                                <th class="p-2 text-right font-semibold">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoiceItemsTable" class="divide-y divide-gray-100 dark:divide-gray-700">
+                            <tr>
+                                <td colspan="3" class="p-3 text-center text-gray-400">No items added to bill yet.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Grand Total -->
+                <div class="flex justify-between items-center py-2 border-t border-gray-200 dark:border-gray-700">
+                    <span class="text-xs font-bold">Grand Total:</span>
+                    <span id="invoiceGrandTotal" class="text-base font-extrabold text-brand-600 dark:text-brand-400">Rs 0</span>
+                </div>
+
+                <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-md flex items-center justify-center space-x-1 active:scale-95 transition">
+                    <i data-lucide="file-check" class="w-4 h-4"></i>
+                    <span>Generate Bill & Update Stock</span>
+                </button>
+            </form>
+        </section>
+    </main>
+
+    <!-- Bottom Mobile Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 z-30 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 px-2 py-1">
+        <div class="max-w-md mx-auto grid grid-cols-5 text-center">
+            <button onclick="switchTab('tab-dashboard')" class="nav-btn active flex flex-col items-center py-1.5 text-brand-600 dark:text-brand-400 font-medium">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span class="text-[10px] mt-0.5">Home</span>
+            </button>
+            <button onclick="switchTab('tab-inventory')" class="nav-btn flex flex-col items-center py-1.5 text-gray-500 dark:text-gray-400 hover:text-brand-600">
+                <i data-lucide="boxes" class="w-5 h-5"></i>
+                <span class="text-[10px] mt-0.5">Stock</span>
+            </button>
+            <button onclick="switchTab('tab-scan')" class="nav-btn flex flex-col items-center py-1.5 text-gray-500 dark:text-gray-400 hover:text-brand-600">
+                <div class="bg-brand-600 text-white p-2.5 rounded-full -mt-4 shadow-lg border-2 border-white dark:border-gray-800">
+                    <i data-lucide="scan-line" class="w-5 h-5"></i>
+                </div>
+                <span class="text-[10px] mt-0.5">Scan Bill</span>
+            </button>
+            <button onclick="switchTab('tab-parties')" class="nav-btn flex flex-col items-center py-1.5 text-gray-500 dark:text-gray-400 hover:text-brand-600">
+                <i data-lucide="users" class="w-5 h-5"></i>
+                <span class="text-[10px] mt-0.5">Parties</span>
+            </button>
+            <button onclick="switchTab('tab-billing')" class="nav-btn flex flex-col items-center py-1.5 text-gray-500 dark:text-gray-400 hover:text-brand-600">
+                <i data-lucide="file-text" class="w-5 h-5"></i>
+                <span class="text-[10px] mt-0.5">Invoice</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- MODAL: ADD / CREATE INVENTORY ITEM -->
+    <div id="addItemModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white dark:bg-gray-800 w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-base">Add New Inventory Item</h3>
+                <button onclick="closeModal('addItemModal')" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form id="addItemForm" onsubmit="handleAddItem(event)" class="space-y-3">
+                <div>
+                    <label class="text-xs font-semibold text-gray-600 dark:text-gray-300">Item Name</label>
+                    <input type="text" id="itemName" required placeholder="e.g. Rice 10kg Bag" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-xs">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-600 dark:text-gray-300">Category</label>
+                    <input type="text" id="itemCategory" placeholder="e.g. Grocery / Electronics" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-xs">
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600 dark:text-gray-300">Stock Qty</label>
+                        <input type="number" id="itemQty" required placeholder="0" min="0" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-xs">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600 dark:text-gray-300">Cost Price (Rs)</label>
+                        <input type="number" id="itemCostPrice" required placeholder="0" step="0.01" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-xs">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-gray-600 dark:text-gray-300">Sale Price (Rs)</label>
+                        <input type="number" id="itemSalePrice" required placeholder="0" step="0.01" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-xs">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-600 dark:text-gray-300">Low Stock Alert Level</label>
+                    <input type="number" id="itemMinQty" value="5" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-xs">
+                </div>
+                <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-md">Save Item to Inventory</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD NEW PARTY -->
+    <div id="addPartyModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white dark:bg-gray-800 w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-base">Add New Party</h3>
+                <button onclick="closeModal('addPartyModal')" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form id="addPartyForm" onsubmit="handleAddParty(event)" class="space-y-3">
+                <div>
+                    <label class="text-xs font-semibold text-gray-600 dark:text-gray-300">Party / Customer Name</label>
+                    <input type="text" id="partyNameInput" required placeholder="e.g. Tariq Store" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-xs">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-600 dark:text-gray-300">Phone Number</label>
+                    <input type="tel" id="partyPhoneInput" placeholder="0300-0000000" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-xs">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-600 dark:text-gray-300">Opening Balance (Rs)</label>
+                    <input type="number" id="partyOpeningBal" value="0" step="0.01" class="w-full mt-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-xs">
+                </div>
+                <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs shadow-md">Create Party Ledger</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: PARTY DETAIL & LEDGER -->
+    <div id="partyDetailModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white dark:bg-gray-800 w-full max-w-md h-[80vh] rounded-t-2xl sm:rounded-2xl p-5 flex flex-col space-y-3">
+            <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-3">
+                <div>
+                    <h3 id="partyModalTitle" class="font-bold text-base">Party Details</h3>
+                    <p id="partyModalPhone" class="text-xs text-gray-400">Phone: -</p>
+                </div>
+                <button onclick="closeModal('partyDetailModal')" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-xl flex justify-between items-center text-xs">
+                <span>Receivable Balance:</span>
+                <span id="partyModalBalance" class="text-sm font-bold text-emerald-600 dark:text-emerald-400">Rs 0</span>
+            </div>
+
+            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wide">Transaction History</h4>
+
+            <div id="partyLedgerList" class="flex-1 overflow-y-auto space-y-2 pr-1">
+                <!-- Rendered transactions -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white px-4 py-2.5 rounded-full text-xs shadow-xl flex items-center space-x-2">
+        <i data-lucide="check" class="w-4 h-4 text-emerald-400"></i>
+        <span id="toastMessage">Success</span>
+    </div>
+
+    <script>
+        // Data Keys
+        const STORAGE_KEY_INVENTORY = 'anwar_inventory_data';
+        const STORAGE_KEY_PARTIES = 'anwar_parties_data';
+        const STORAGE_KEY_TRANSACTIONS = 'anwar_transactions_data';
+
+        // Completely Blank State Init (No Default Items)
+        let inventory = JSON.parse(localStorage.getItem(STORAGE_KEY_INVENTORY)) || [];
+        let parties = JSON.parse(localStorage.getItem(STORAGE_KEY_PARTIES)) || [];
+        let transactions = JSON.parse(localStorage.getItem(STORAGE_KEY_TRANSACTIONS)) || [];
+
+        let currentInvoiceItems = [];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            renderDashboard();
+            renderInventory();
+            renderParties();
+            populatePartyDropdowns();
+        });
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-brand-600', 'dark:text-brand-400');
+                btn.classList.add('text-gray-500', 'dark:text-gray-400');
+            });
+
+            lucide.createIcons();
+            if(tabId === 'tab-dashboard') renderDashboard();
+            if(tabId === 'tab-inventory') renderInventory();
+            if(tabId === 'tab-parties') renderParties();
+            if(tabId === 'tab-billing') populatePartyDropdowns();
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY_INVENTORY, JSON.stringify(inventory));
+            localStorage.setItem(STORAGE_KEY_PARTIES, JSON.stringify(parties));
+            localStorage.setItem(STORAGE_KEY_TRANSACTIONS, JSON.stringify(transactions));
+        }
+
+        // 1. INVENTORY MANAGEMET
+        function renderInventory() {
+            const container = document.getElementById('inventoryList');
+            const search = document.getElementById('inventorySearch').value.toLowerCase();
+            container.innerHTML = '';
+
+            const filtered = inventory.filter(i => 
+                i.name.toLowerCase().includes(search) || 
+                (i.category && i.category.toLowerCase().includes(search))
+            );
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<p class="text-xs text-center text-gray-400 py-6">No inventory items. Click "+ Add Item" to create one.</p>`;
+                return;
+            }
+
+            filtered.forEach(item => {
+                const isLow = item.qty <= item.minQty;
+                const card = document.createElement('div');
+                card.className = `bg-white dark:bg-gray-800 p-3.5 rounded-2xl shadow-sm border ${isLow ? 'border-amber-300 dark:border-amber-700 bg-amber-50/20' : 'border-gray-100 dark:border-gray-700'} flex justify-between items-center`;
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h4 class="font-bold text-xs text-gray-900 dark:text-gray-100">${item.name}</h4>
+                            ${item.category ? `<span class="text-[9px] bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-md text-gray-500">${item.category}</span>` : ''}
+                        </div>
+                        <p class="text-[11px] text-gray-500 mt-1">
+                            Cost: <span class="font-semibold">Rs ${item.costPrice || 0}</span> | 
+                            Sale: <span class="font-bold text-brand-600 dark:text-brand-400">Rs ${item.salePrice || 0}</span>
+                        </p>
+                        ${isLow ? `<span class="inline-block mt-1 text-[9px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full">Low Stock</span>` : ''}
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="text-right mr-1">
+                            <span class="text-sm font-extrabold block">${item.qty}</span>
+                            <span class="text-[9px] text-gray-400">units</span>
+                        </div>
+                        <button onclick="adjustQty(${item.id}, 1)" class="p-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 rounded-lg text-xs font-bold">+</button>
+                        <button onclick="adjustQty(${item.id}, -1)" class="p-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 rounded-lg text-xs font-bold">-</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function handleAddItem(e) {
+            e.preventDefault();
+            const name = document.getElementById('itemName').value;
+            const category = document.getElementById('itemCategory').value;
+            const qty = parseInt(document.getElementById('itemQty').value) || 0;
+            const costPrice = parseFloat(document.getElementById('itemCostPrice').value) || 0;
+            const salePrice = parseFloat(document.getElementById('itemSalePrice').value) || 0;
+            const minQty = parseInt(document.getElementById('itemMinQty').value) || 5;
+
+            inventory.push({ id: Date.now(), name, category, qty, costPrice, salePrice, minQty });
+            saveData();
+            closeModal('addItemModal');
+            document.getElementById('addItemForm').reset();
+            renderInventory();
+            showToast('Stock Item Added to Anwar Inventory');
+        }
+
+        function adjustQty(id, delta) {
+            const item = inventory.find(i => i.id === id);
+            if (item) {
+                item.qty = Math.max(0, item.qty + delta);
+                saveData();
+                renderInventory();
+            }
+        }
+
+        // 2. PARTIES & LEDGER
+        function renderParties() {
+            const container = document.getElementById('partiesList');
+            const search = document.getElementById('partySearch').value.toLowerCase();
+            container.innerHTML = '';
+
+            const filtered = parties.filter(p => p.name.toLowerCase().includes(search) || (p.phone && p.phone.includes(search)));
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<p class="text-xs text-center text-gray-400 py-6">No parties found. Click "+ Add Party" to register one.</p>`;
+                return;
+            }
+
+            filtered.forEach(party => {
+                const card = document.createElement('div');
+                card.className = "bg-white dark:bg-gray-800 p-3.5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex justify-between items-center cursor-pointer hover:border-brand-500 transition";
+                card.onclick = () => openPartyLedger(party.id);
+                card.innerHTML = `
+                    <div>
+                        <h4 class="font-bold text-xs text-gray-900 dark:text-gray-100">${party.name}</h4>
+                        <p class="text-[10px] text-gray-400">${party.phone || 'No Phone'}</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs font-bold ${party.balance > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500'}">Rs ${party.balance}</span>
+                        <span class="text-[9px] text-gray-400 block">${party.balance > 0 ? 'Receivable' : 'Settled'}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function handleAddParty(e) {
+            e.preventDefault();
+            const name = document.getElementById('partyNameInput').value;
+            const phone = document.getElementById('partyPhoneInput').value;
+            const balance = parseFloat(document.getElementById('partyOpeningBal').value) || 0;
+
+            parties.push({ id: Date.now(), name, phone, balance });
+            saveData();
+            closeModal('addPartyModal');
+            document.getElementById('addPartyForm').reset();
+            renderParties();
+            showToast('Party Ledger Created');
+        }
+
+        function openPartyLedger(partyId) {
+            const party = parties.find(p => p.id === partyId);
+            if(!party) return;
+
+            document.getElementById('partyModalTitle').innerText = party.name;
+            document.getElementById('partyModalPhone').innerText = 'Phone: ' + (party.phone || 'N/A');
+            document.getElementById('partyModalBalance').innerText = 'Rs ' + party.balance;
+
+            const list = document.getElementById('partyLedgerList');
+            list.innerHTML = '';
+
+            const partyTxns = transactions.filter(t => t.partyId === party.id);
+            if(partyTxns.length === 0) {
+                list.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">No ledger transactions recorded yet.</p>`;
+            } else {
+                [...partyTxns].reverse().forEach(t => {
+                    const row = document.createElement('div');
+                    row.className = "bg-gray-50 dark:bg-gray-700/50 p-2.5 rounded-xl border border-gray-100 dark:border-gray-700 flex justify-between items-center text-xs";
+                    row.innerHTML = `
+                        <div>
+                            <span class="font-semibold block">${t.details || t.type}</span>
+                            <span class="text-[10px] text-gray-400">${t.date}</span>
+                        </div>
+                        <span class="font-bold text-emerald-600 dark:text-emerald-400">+ Rs ${t.amount}</span>
+                    `;
+                    list.appendChild(row);
+                });
+            }
+
+            openModal('partyDetailModal');
+        }
+
+        // 3. OCR BILL SCANNER
+        function handleBillImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('scannedImagePreview').src = e.target.result;
+                document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                document.getElementById('uploadPlaceholder').classList.add('hidden');
+                runOCRScan(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function runOCRScan(imageSrc) {
+            const statusBox = document.getElementById('ocrStatus');
+            statusBox.classList.remove('hidden');
+
+            Tesseract.recognize(
+                imageSrc,
+                'eng',
+                { logger: m => console.log(m) }
+            ).then(({ data: { text } }) => {
+                statusBox.classList.add('hidden');
+                parseBillText(text);
+                showToast("Bill Extracted!");
+            }).catch(err => {
+                statusBox.classList.add('hidden');
+                showToast("Parsing complete");
+            });
+        }
+
+        function parseBillText(rawText) {
+            const amountMatches = rawText.match(/(?:Total|Amount|Rs|\$)\s*:?\s*([\d,.]+)/i);
+            if (amountMatches && amountMatches[1]) {
+                document.getElementById('scanTotalAmount').value = amountMatches[1].replace(',', '');
+            }
+
+            const lines = rawText.split('\n').filter(l => l.trim().length > 0);
+            if(lines.length > 0) {
+                document.getElementById('scanPartyName').value = lines[0].substring(0, 25);
+            }
+            document.getElementById('scanItemsDescription').value = rawText.substring(0, 100);
+        }
+
+        function saveParsedBill(e) {
+            e.preventDefault();
+            const partyName = document.getElementById('scanPartyName').value.trim();
+            const amount = parseFloat(document.getElementById('scanTotalAmount').value) || 0;
+            const type = document.getElementById('scanBillType').value;
+            const desc = document.getElementById('scanItemsDescription').value;
+
+            let party = parties.find(p => p.name.toLowerCase() === partyName.toLowerCase());
+            if (!party) {
+                party = { id: Date.now(), name: partyName, phone: '', balance: 0 };
+                parties.push(party);
+            }
+
+            if (type === 'Sale') party.balance += amount;
+            else if (type === 'Payment Received') party.balance -= amount;
+
+            transactions.push({
+                id: Date.now(),
+                partyId: party.id,
+                type: type,
+                amount: amount,
+                details: desc || 'Scanned Bill Direct Entry',
+                date: new Date().toLocaleDateString()
+            });
+
+            saveData();
+            showToast('Direct Entry Posted to Party Ledger');
+            document.getElementById('scannedEntryForm').reset();
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+            document.getElementById('uploadPlaceholder').classList.remove('hidden');
+            switchTab('tab-parties');
+        }
+
+        // 4. INVOICE GENERATOR & DASHBOARD RENDER
+        function populatePartyDropdowns() {
+            const partySel = document.getElementById('invoicePartySelect');
+            const itemSel = document.getElementById('invoiceItemSelect');
+
+            partySel.innerHTML = parties.length > 0 
+                ? parties.map(p => `<option value="${p.id}">${p.name}</option>`).join('')
+                : `<option value="">No party available</option>`;
+
+            itemSel.innerHTML = inventory.length > 0
+                ? inventory.map(i => `<option value="${i.id}">${i.name} (Rs ${i.salePrice})</option>`).join('')
+                : `<option value="">No inventory items</option>`;
+        }
+
+        function addItemToInvoiceList() {
+            const itemId = parseInt(document.getElementById('invoiceItemSelect').value);
+            const qty = parseInt(document.getElementById('invoiceItemQty').value) || 1;
+            const item = inventory.find(i => i.id === itemId);
+
+            if(!item) return;
+
+            currentInvoiceItems.push({
+                itemId: item.id,
+                name: item.name,
+                qty: qty,
+                price: item.salePrice,
+                total: qty * item.salePrice
+            });
+
+            renderInvoiceTable();
+        }
+
+        function renderInvoiceTable() {
+            const tbody = document.getElementById('invoiceItemsTable');
+            tbody.innerHTML = '';
+            let grandTotal = 0;
+
+            currentInvoiceItems.forEach(i => {
+                grandTotal += i.total;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-2 font-medium">${i.name}</td>
+                    <td class="p-2 text-center">${i.qty}</td>
+                    <td class="p-2 text-right font-bold">Rs ${i.total}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('invoiceGrandTotal').innerText = `Rs ${grandTotal}`;
+        }
+
+        function createInvoice(e) {
+            e.preventDefault();
+            const partyId = parseInt(document.getElementById('invoicePartySelect').value);
+            const party = parties.find(p => p.id === partyId);
+
+            if (!party || currentInvoiceItems.length === 0) {
+                showToast('Please select party & add items!');
+                return;
+            }
+
+            let total = 0;
+            currentInvoiceItems.forEach(i => {
+                total += i.total;
+                const stockItem = inventory.find(s => s.id === i.itemId);
+                if (stockItem) stockItem.qty = Math.max(0, stockItem.qty - i.qty);
+            });
+
+            party.balance += total;
+
+            transactions.push({
+                id: Date.now(),
+                partyId: partyId,
+                type: 'Sale',
+                amount: total,
+                details: `Invoice (${currentInvoiceItems.length} items)`,
+                date: new Date().toLocaleDateString()
+            });
+
+            saveData();
+            currentInvoiceItems = [];
+            renderInvoiceTable();
+            showToast('Invoice Created & Stock Updated');
+            switchTab('tab-dashboard');
+        }
+
+        function renderDashboard() {
+            document.getElementById('dashTotalItems').innerText = inventory.reduce((acc, item) => acc + item.qty, 0);
+            
+            const totalRec = parties.reduce((acc, p) => acc + (p.balance > 0 ? p.balance : 0), 0);
+            document.getElementById('dashTotalReceivable').innerText = `Rs ${totalRec}`;
+
+            const lowItems = inventory.filter(i => i.qty <= i.minQty);
+            const alertBox = document.getElementById('lowStockAlert');
+            if(lowItems.length > 0) {
+                alertBox.classList.remove('hidden');
+                document.getElementById('lowStockMessage').innerText = `${lowItems.length} items running low on stock!`;
+            } else {
+                alertBox.classList.add('hidden');
+            }
+
+            const recentContainer = document.getElementById('recentEntriesList');
+            recentContainer.innerHTML = '';
+            const recentTxns = [...transactions].reverse().slice(0, 4);
+
+            if (recentTxns.length === 0) {
+                recentContainer.innerHTML = `<p class="text-xs text-gray-400 py-4 text-center">No transactions recorded yet.</p>`;
+                return;
+            }
+
+            recentTxns.forEach(t => {
+                const party = parties.find(p => p.id === t.partyId);
+                const div = document.createElement('div');
+                div.className = "pt-2 flex justify-between items-center text-xs";
+                div.innerHTML = `
+                    <div>
+                        <p class="font-bold text-gray-800 dark:text-gray-200">${party ? party.name : 'Direct Entry'}</p>
+                        <p class="text-[10px] text-gray-400">${t.date} • ${t.details}</p>
+                    </div>
+                    <span class="font-bold text-emerald-600 dark:text-emerald-400">+ Rs ${t.amount}</span>
+                `;
+                recentContainer.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>
