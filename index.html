@@ -138,13 +138,14 @@
             </div>
         </div>
 
-        <!-- OCR Tab -->
+        <!-- OCR Tab (Enhanced) -->
         <div id="tab-ocr" class="hidden space-y-4">
             <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl max-w-xl mx-auto">
-                <h2 class="text-sm font-semibold text-white mb-3">Bill OCR Scanner</h2>
+                <h2 class="text-sm font-semibold text-white mb-3">Enhanced Bill OCR Scanner</h2>
+                <p class="text-[11px] text-slate-400 mb-3">Select a clear bill image. The scanner will preprocess and clean the image automatically for high text accuracy.</p>
                 <input type="file" id="ocrFile" accept="image/*" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-slate-300 mb-3">
-                <button onclick="runOCR()" class="w-full bg-purple-600 text-white py-2 rounded-xl text-xs mb-3">Scan Image</button>
-                <div id="ocrRes" class="bg-slate-950 p-3 rounded-xl text-xs text-slate-300 min-h-[100px]">No scan output yet.</div>
+                <button onclick="runOCR()" class="w-full bg-purple-600 text-white py-2 rounded-xl text-xs mb-3">Scan & Process Image</button>
+                <div id="ocrRes" class="bg-slate-950 p-3 rounded-xl text-xs text-slate-300 min-h-[120px] whitespace-pre-wrap">No scan output yet.</div>
             </div>
         </div>
     </div>
@@ -338,15 +339,54 @@
             });
         }
 
+        // Enhanced OCR with Image Preprocessing (Grayscale & Contrast Boost)
         async function runOCR() {
             const f = document.getElementById('ocrFile');
             const res = document.getElementById('ocrRes');
-            if(f.files.length === 0) { alert('Select an image!'); return; }
-            res.innerText = 'Scanning...';
+            if(f.files.length === 0) { alert('Please select an image first!'); return; }
+            
+            res.innerText = 'Preprocessing image & scanning... Please wait...';
             try {
-                const { data: { text } } = await Tesseract.recognize(f.files[0], 'eng');
-                res.innerText = text || 'No text found.';
-            } catch(err) { res.innerText = 'Scan error.'; }
+                const file = f.files[0];
+                const img = new Image();
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                }
+                
+                img.onload = async function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    
+                    // Draw image
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // Convert to Grayscale & Increase Contrast for better OCR
+                    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imgData.data;
+                    for (let i = 0; i < data.length; i += 4) {
+                        let avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                        // High contrast thresholding logic
+                        let val = avg < 120 ? 0 : 255; 
+                        data[i] = val;     // R
+                        data[i+1] = val; // G
+                        data[i+2] = val; // B
+                    }
+                    ctx.putImageData(imgData, 0, 0);
+
+                    // Run Tesseract on processed canvas image
+                    const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+                    res.innerText = text.trim() ? text : 'No clear text recognized. Try a sharper image.';
+                }
+                reader.readAsDataURL(file);
+
+            } catch(err) { 
+                console.error(err);
+                res.innerText = 'Scan error occurred.'; 
+            }
         }
 
         function initApp() {
