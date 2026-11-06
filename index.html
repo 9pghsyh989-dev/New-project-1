@@ -96,6 +96,27 @@
         </div>
     </div>
 
+    <!-- CHANGE CREDENTIALS MODAL -->
+    <div id="changeAuthModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+            <h3 class="text-lg font-bold text-white flex items-center justify-between">
+                <span><i class="fa-solid fa-user-shield text-blue-500 mr-1"></i> Change Login Credentials</span>
+                <button onclick="closeChangeAuthModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-times"></i></button>
+            </h3>
+            <form onsubmit="handleChangeAuth(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">New Username</label>
+                    <input type="text" id="newUsernameInput" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">New Password</label>
+                    <input type="password" id="newPasswordInput" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-lg text-sm font-medium">Update Credentials</button>
+            </form>
+        </div>
+    </div>
+
     <!-- Header Section -->
     <header class="bg-slate-800 border-b border-slate-700 shadow-md sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
@@ -111,12 +132,15 @@
                 </div>
             </div>
 
-            <!-- Auto Dynamic Date & Time -->
-            <div class="flex items-center gap-3">
-                <button onclick="openCalculatorModal()" class="bg-slate-700 hover:bg-slate-600 text-amber-400 px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 transition-all">
+            <!-- Auto Dynamic Date, Time & Security Options -->
+            <div class="flex items-center gap-2 flex-wrap justify-end">
+                <button onclick="openChangeAuthModal()" class="bg-slate-700 hover:bg-slate-600 text-blue-400 px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 transition-all border border-slate-600">
+                    <i class="fa-solid fa-key"></i> Change Pass
+                </button>
+                <button onclick="openCalculatorModal()" class="bg-slate-700 hover:bg-slate-600 text-amber-400 px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 transition-all border border-slate-600">
                     <i class="fa-solid fa-calculator text-sm"></i> Calculator
                 </button>
-                <div class="bg-slate-900/80 border border-slate-700 px-4 py-2 rounded-lg text-right min-w-[200px]">
+                <div class="bg-slate-900/80 border border-slate-700 px-4 py-2 rounded-lg text-right min-w-[180px]">
                     <div id="liveClock" class="text-xl font-mono font-semibold text-emerald-400">00:00:00 AM</div>
                     <div id="liveDate" class="text-xs text-slate-400">Loading Date...</div>
                 </div>
@@ -151,12 +175,14 @@
         <!-- BLOCK 1: INVENTORY & ITEMS -->
         <section id="tab-inventory" class="tab-content space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Manual Item Add Form -->
+                <!-- Manual Item Add / Edit Form -->
                 <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-lg h-fit">
-                    <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                        <i class="fa-solid fa-plus-circle text-blue-500"></i> Add New Item Manual
+                    <h2 class="text-lg font-bold text-white mb-4 flex items-center justify-between">
+                        <span id="itemFormTitle" class="flex items-center gap-2"><i class="fa-solid fa-plus-circle text-blue-500"></i> Add New Item Manual</span>
+                        <button type="button" id="cancelEditBtn" onclick="resetItemForm()" class="hidden text-xs text-slate-400 hover:text-white underline">Cancel Edit</button>
                     </h2>
                     <form id="addItemForm" onsubmit="handleAddItem(event)" class="space-y-4">
+                        <input type="hidden" id="editingItemSKU" value="">
                         <div>
                             <label class="block text-xs text-slate-400 mb-1">Item Code / SKU</label>
                             <input type="text" id="itemSKU" required placeholder="e.g. ITM-101" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 text-sm">
@@ -189,7 +215,7 @@
                             <label class="block text-xs text-slate-400 mb-1">Unit Price (PKR/Rs)</label>
                             <input type="number" id="itemPrice" required min="0" step="0.01" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 text-sm">
                         </div>
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 rounded-lg transition-all shadow-md text-sm flex items-center justify-center gap-2">
+                        <button type="submit" id="saveItemBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 rounded-lg transition-all shadow-md text-sm flex items-center justify-center gap-2">
                             <i class="fa-solid fa-save"></i> Save Item to Stock
                         </button>
                     </form>
@@ -479,7 +505,7 @@
                         <input type="number" id="modalItemPrice" placeholder="Price" min="0" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white">
                     </div>
                     <div class="col-span-1">
-                        <button type="button" onclick="addItemToCurrentBill()" class="w-full bg-indigo-600 text-white rounded-lg py-1.5 text-xs"><i class="fa-solid fa-plus"></i></button>
+                        <button type="button" onclick="addItemToCurrentBill()" class="w-full bg-indigo-600 text-white rounded-lg py-1.5 text-xs font-bold" title="Add Selected / All Items"><i class="fa-solid fa-plus"></i></button>
                     </div>
                 </div>
             </div>
@@ -613,16 +639,19 @@
             bills: JSON.parse(localStorage.getItem('anwar_bills')) || []
         };
 
+        // Get saved auth or set default
+        let systemAuth = JSON.parse(localStorage.getItem('anwar_auth')) || { user: 'admin', pass: '1234' };
+
         let tempBillItems = [];
         let currentViewingBill = null;
 
-        // Force Login on Every Page Refresh (SessionStorage used)
+        // Dynamic Login Handling
         function handleLogin(e) {
             e.preventDefault();
             const u = document.getElementById('loginUser').value.trim();
             const p = document.getElementById('loginPass').value.trim();
 
-            if (u === 'admin' && p === '1234') {
+            if (u === systemAuth.user && p === systemAuth.pass) {
                 sessionStorage.setItem('anwar_logged_in', 'true');
                 document.getElementById('loginModal').classList.add('hidden');
             } else {
@@ -642,6 +671,28 @@
             }
         }
 
+        // Change Credentials Logic
+        function openChangeAuthModal() {
+            document.getElementById('newUsernameInput').value = systemAuth.user;
+            document.getElementById('newPasswordInput').value = systemAuth.pass;
+            document.getElementById('changeAuthModal').classList.remove('hidden');
+        }
+        function closeChangeAuthModal() {
+            document.getElementById('changeAuthModal').classList.add('hidden');
+        }
+        function handleChangeAuth(e) {
+            e.preventDefault();
+            const newUser = document.getElementById('newUsernameInput').value.trim();
+            const newPass = document.getElementById('newPasswordInput').value.trim();
+
+            if (!newUser || !newPass) return alert('Username and Password cannot be empty!');
+
+            systemAuth = { user: newUser, pass: newPass };
+            localStorage.setItem('anwar_auth', JSON.stringify(systemAuth));
+            alert('Username & Password updated successfully!');
+            closeChangeAuthModal();
+        }
+
         function openForgotPasswordModal() {
             document.getElementById('masterKeyInput').value = '';
             document.getElementById('forgotModal').classList.remove('hidden');
@@ -653,7 +704,9 @@
         function verifyMasterKey() {
             const key = document.getElementById('masterKeyInput').value.trim();
             if (key === 'Grace@12') {
-                alert('Master Key verified! Default username is: admin, password is: 1234');
+                systemAuth = { user: 'admin', pass: '1234' };
+                localStorage.setItem('anwar_auth', JSON.stringify(systemAuth));
+                alert('Master Key verified! Reset credentials to: admin / 1234');
                 closeForgotModal();
             } else {
                 alert('Invalid Master Key!');
@@ -702,21 +755,52 @@
             catch(e) { document.getElementById('calcDisplay').value = 'Error'; }
         }
 
-        // Inventory
+        // Inventory: Add & Edit Logic
         function handleAddItem(e) {
             e.preventDefault();
+            const editingSKU = document.getElementById('editingItemSKU').value;
             const sku = document.getElementById('itemSKU').value.trim();
             const name = document.getElementById('itemName').value.trim();
             const qty = parseFloat(document.getElementById('itemQty').value) || 0;
             const unit = document.getElementById('itemUnit').value;
             const price = parseFloat(document.getElementById('itemPrice').value) || 0;
 
-            const idx = db.items.findIndex(i => i.sku.toLowerCase() === sku.toLowerCase());
-            if (idx > -1) db.items[idx] = { sku, name, qty, unit, price };
-            else db.items.push({ sku, name, qty, unit, price });
+            if (editingSKU) {
+                const idx = db.items.findIndex(i => i.sku === editingSKU);
+                if (idx > -1) {
+                    db.items[idx] = { sku, name, qty, unit, price };
+                }
+            } else {
+                const idx = db.items.findIndex(i => i.sku.toLowerCase() === sku.toLowerCase());
+                if (idx > -1) db.items[idx] = { sku, name, qty, unit, price };
+                else db.items.push({ sku, name, qty, unit, price });
+            }
 
             saveData();
+            resetItemForm();
+        }
+
+        function editItem(sku) {
+            const item = db.items.find(i => i.sku === sku);
+            if (!item) return;
+            document.getElementById('editingItemSKU').value = item.sku;
+            document.getElementById('itemSKU').value = item.sku;
+            document.getElementById('itemName').value = item.name;
+            document.getElementById('itemQty').value = item.qty;
+            document.getElementById('itemUnit').value = item.unit;
+            document.getElementById('itemPrice').value = item.price;
+
+            document.getElementById('itemFormTitle').innerHTML = `<i class="fa-solid fa-pen-to-square text-amber-500"></i> Edit Stock Item`;
+            document.getElementById('saveItemBtn').innerHTML = `<i class="fa-solid fa-sync"></i> Update Item`;
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
+        }
+
+        function resetItemForm() {
+            document.getElementById('editingItemSKU').value = '';
             document.getElementById('addItemForm').reset();
+            document.getElementById('itemFormTitle').innerHTML = `<i class="fa-solid fa-plus-circle text-blue-500"></i> Add New Item Manual`;
+            document.getElementById('saveItemBtn').innerHTML = `<i class="fa-solid fa-save"></i> Save Item to Stock`;
+            document.getElementById('cancelEditBtn').classList.add('hidden');
         }
 
         function renderInventory() {
@@ -733,8 +817,9 @@
                     <td class="p-3"><span class="bg-slate-900 px-2 py-1 rounded text-xs">${item.qty} ${item.unit}</span></td>
                     <td class="p-3 text-emerald-400 font-semibold">PKR ${(item.price || 0).toFixed(2)}</td>
                     <td class="p-3 text-emerald-400 font-semibold">PKR ${((item.qty || 0) * (item.price || 0)).toFixed(2)}</td>
-                    <td class="p-3 text-center">
-                        <button onclick="deleteItem('${item.sku}')" class="bg-rose-600/30 text-rose-400 px-2 py-1 rounded text-xs"><i class="fa-solid fa-trash"></i></button>
+                    <td class="p-3 text-center space-x-1">
+                        <button onclick="editItem('${item.sku}')" class="bg-amber-600/30 text-amber-400 px-2 py-1 rounded text-xs" title="Edit Item"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deleteItem('${item.sku}')" class="bg-rose-600/30 text-rose-400 px-2 py-1 rounded text-xs" title="Delete Item"><i class="fa-solid fa-trash"></i></button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -787,7 +872,13 @@
         function openCreateBillModal() {
             tempBillItems = [];
             document.getElementById('modalBillParty').innerHTML = db.parties.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
-            document.getElementById('modalItemSelect').innerHTML = '<option value="">Select Item...</option>' + db.items.map(i => `<option value="${i.sku}">${i.name} (Stock: ${i.qty})</option>`).join('');
+            
+            // Added Select All Items option
+            document.getElementById('modalItemSelect').innerHTML = `
+                <option value="">Select Item...</option>
+                <option value="ALL_ITEMS" class="font-bold text-amber-400">⚡ SELECT ALL ITEMS (AUTO FILL)</option>
+            ` + db.items.map(i => `<option value="${i.sku}">${i.name} (Stock: ${i.qty})</option>`).join('');
+            
             document.getElementById('modalBillDate').value = new Date().toISOString().split('T')[0];
             renderModalBillItems();
             document.getElementById('billModal').classList.remove('hidden');
@@ -795,15 +886,33 @@
         function closeBillModal() { document.getElementById('billModal').classList.add('hidden'); }
 
         function autoFillItemPrice() {
-            const item = db.items.find(i => i.sku === document.getElementById('modalItemSelect').value);
+            const val = document.getElementById('modalItemSelect').value;
+            if (val === 'ALL_ITEMS') {
+                document.getElementById('modalItemPrice').value = '';
+                document.getElementById('modalItemQty').value = '1';
+                return;
+            }
+            const item = db.items.find(i => i.sku === val);
             if(item) { document.getElementById('modalItemPrice').value = item.price; document.getElementById('modalItemQty').value = 1; }
         }
 
         function addItemToCurrentBill() {
             const sku = document.getElementById('modalItemSelect').value;
+            if(!sku) return alert('Select item');
+
+            // Select All Items Feature
+            if (sku === 'ALL_ITEMS') {
+                if(db.items.length === 0) return alert('No stock items available in inventory!');
+                db.items.forEach(item => {
+                    tempBillItems.push({ sku: item.sku, name: item.name, qty: 1, price: item.price, total: 1 * item.price });
+                });
+                renderModalBillItems();
+                return;
+            }
+
             const qty = parseFloat(document.getElementById('modalItemQty').value) || 0;
             const price = parseFloat(document.getElementById('modalItemPrice').value) || 0;
-            if(!sku || qty <= 0) return alert('Select item & qty');
+            if(qty <= 0) return alert('Select qty');
             const item = db.items.find(i => i.sku === sku);
             tempBillItems.push({ sku: item.sku, name: item.name, qty, price, total: qty * price });
             renderModalBillItems();
