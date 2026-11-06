@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between font-sans">
 
@@ -127,80 +127,77 @@
             </div>
         </div>
 
-        <!-- HYBRID PRINTED + HANDWRITTEN OCR SCANNER -->
+        <!-- EXCEL BILL IMPORT -->
         <div id="tab-ocr" class="hidden space-y-4">
             <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl max-w-3xl mx-auto">
-                <h2 class="text-lg font-bold text-white mb-2">Smart Bill Scanner</h2>
-                <p class="text-xs text-slate-400 mb-4">Printed aur handwritten dono bills ke liye hybrid scanner. OCR suggestions dega; aap item, quantity aur amount verify/edit kar sakte hain.</p>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">Bill type</label>
-                        <select id="ocrMode" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white">
-                            <option value="both">Auto – Printed + Handwritten</option>
-                            <option value="printed">Printed bill</option>
-                            <option value="handwritten">Handwritten bill</option>
-                        </select>
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="bg-emerald-500/15 text-emerald-400 rounded-xl p-3">
+                        <i data-lucide="file-spreadsheet" class="w-7 h-7"></i>
                     </div>
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Bill photo</label>
-                        <input type="file" id="ocrFile" accept="image/*" capture="environment" onchange="previewOCRImage()" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white">
+                        <h2 class="text-lg font-bold text-white">Excel Bill Import</h2>
+                        <p class="text-xs text-slate-400">Image scanner removed — ab Excel sheet upload karein.</p>
                     </div>
                 </div>
 
-                <img id="ocrPreview" class="hidden w-full max-h-96 object-contain rounded-xl mb-3 border border-slate-700 bg-slate-950" alt="Bill preview">
-
-                <div class="grid grid-cols-2 gap-2">
-                    <button id="scanBtn" onclick="runOCR()" class="bg-purple-600 hover:bg-purple-500 text-white py-3 rounded-xl font-semibold">Scan Bill</button>
-                    <button onclick="addOCRRow()" class="bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl font-semibold">+ Add Item Row</button>
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 mt-4">
+                    <label class="block text-xs font-semibold text-slate-300 mb-2">Select Excel / CSV file</label>
+                    <input id="excelFile" type="file" accept=".xlsx,.xls,.csv,.ods" onchange="readExcelBill(event)"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-slate-200">
+                    <p class="text-[11px] text-slate-500 mt-2">Supported: .xlsx, .xls, .csv. First row mein headings hon to behtar hai: Item, Qty, Rate, Amount.</p>
+                    <a href="#" onclick="downloadExcelTemplate(event)" class="inline-flex items-center gap-2 text-emerald-400 text-xs mt-3 hover:underline">
+                        <i data-lucide="download" class="w-4 h-4"></i> Download sample Excel template
+                    </a>
                 </div>
 
-                <div id="ocrProgress" class="hidden mt-4">
-                    <div class="flex justify-between text-xs text-slate-400 mb-2"><span id="ocrStatus">Preparing image...</span><span id="ocrPercent">0%</span></div>
-                    <div class="w-full bg-slate-800 rounded-full h-2"><div id="ocrBar" class="bg-purple-500 h-2 rounded-full" style="width:0%"></div></div>
-                </div>
+                <div id="excelStatus" class="hidden mt-4 rounded-xl p-3 text-xs"></div>
 
-                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div id="excelBillFields" class="hidden mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Shop / Supplier</label>
-                        <input id="ocrShop" type="text" placeholder="Shop or supplier name" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-sm">
+                        <label class="block text-xs text-slate-400 mb-1">Customer / Supplier name</label>
+                        <input id="excelCustomer" type="text" placeholder="Customer or supplier"
+                            class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white">
                     </div>
                     <div>
                         <label class="block text-xs text-slate-400 mb-1">Bill date</label>
-                        <input id="ocrDate" type="text" placeholder="Date (if visible)" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white text-sm">
+                        <input id="excelDate" type="text" placeholder="Bill date"
+                            class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white">
                     </div>
                 </div>
 
-                <div class="mt-4 bg-slate-950 border border-slate-800 rounded-xl p-3">
-                    <div class="flex items-center justify-between gap-2 mb-3">
-                        <h3 class="text-sm font-bold text-emerald-400">Editable item details</h3>
-                        <span class="text-[10px] text-slate-500">Check every OCR suggestion</span>
+                <div id="excelPreviewWrap" class="hidden mt-4 bg-slate-950 border border-slate-800 rounded-xl p-3">
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
+                        <h3 class="text-sm font-bold text-emerald-400">Imported sheet preview</h3>
+                        <span id="excelRowCount" class="text-[11px] text-slate-400"></span>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="w-full min-w-[560px] text-left text-xs">
-                            <thead class="text-slate-400 border-b border-slate-800">
-                                <tr><th class="p-2">Item / Description</th><th class="p-2 w-20">Qty</th><th class="p-2 w-24">Rate</th><th class="p-2 w-28">Amount</th><th class="p-2"> </th></tr>
+                        <table class="w-full min-w-[560px] text-left text-xs text-slate-200">
+                            <thead class="bg-slate-900 text-slate-400">
+                                <tr>
+                                    <th class="p-2">Item / Description</th>
+                                    <th class="p-2">Qty</th>
+                                    <th class="p-2">Rate</th>
+                                    <th class="p-2">Amount</th>
+                                    <th class="p-2">Action</th>
+                                </tr>
                             </thead>
-                            <tbody id="ocrItems"></tbody>
+                            <tbody id="excelPreviewBody" class="divide-y divide-slate-800"></tbody>
                         </table>
                     </div>
                     <div class="flex flex-wrap justify-between items-center gap-3 mt-4">
-                        <p class="text-xs text-slate-400">Calculated total</p>
-                        <div class="text-xl font-bold text-emerald-400">Rs. <span id="ocrGrandTotal">0.00</span></div>
+                        <button type="button" onclick="addExcelItemRow()" class="bg-slate-700 text-white px-3 py-2 rounded-lg text-xs">+ Add row</button>
+                        <div class="text-right">
+                            <p class="text-xs text-slate-400">Grand Total</p>
+                            <p class="text-xl font-bold text-emerald-400">Rs. <span id="excelGrandTotal">0.00</span></p>
+                        </div>
                     </div>
-                    <p class="text-[10px] text-slate-500 mt-2">Amount field editable hai. Agar bill par line amount pehle se likha hai to Rate/Qty ke bajaye Amount mein woh value enter karein.</p>
                 </div>
 
-                <details class="mt-4 bg-slate-950 border border-slate-800 rounded-xl p-3">
-                    <summary class="text-sm font-bold text-blue-400 cursor-pointer">Raw OCR text (review)</summary>
-                    <textarea id="ocrRaw" readonly rows="9" placeholder="Scanned text yahan show hoga..." class="w-full mt-3 bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs text-slate-200"></textarea>
-                </details>
-
-                <div class="grid grid-cols-2 gap-2 mt-4">
-                    <button onclick="useOCRSuggestions()" class="bg-blue-700 hover:bg-blue-600 text-white py-3 rounded-xl text-sm">Rebuild Item Suggestions</button>
-                    <button onclick="saveOCRBill()" class="bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-semibold text-sm">Save Bill</button>
-                </div>
-                <p class="text-[10px] text-amber-300 mt-3">Important: Browser OCR is strongest on clear printed text. Handwriting recognition may be inaccurate; verify the original photo before saving. Reliable handwriting AI requires a secure server-side vision service.</p>
+                <button id="saveExcelBillBtn" type="button" onclick="saveExcelBill()" disabled
+                    class="w-full mt-4 bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white py-3 rounded-xl font-semibold text-sm">
+                    Save Imported Bill
+                </button>
+                <p class="text-[10px] text-amber-300 mt-3">Import hone ke baad rows aur amounts check karein. Excel data aapke browser ke andar read hota hai; save karne par bill isi device ki local storage mein save hoga.</p>
             </div>
         </div>
     </div>
@@ -483,296 +480,269 @@
     }
 
     // ==========================================
-    // HYBRID PRINTED + HANDWRITTEN BILL SCANNER
+    // ==========================================
+    // EXCEL / CSV BILL IMPORT
     // ==========================================
 
-    let ocrRowCounter = 0;
+    let excelImportedRows = [];
+    let excelWorkbookName = '';
 
-    function previewOCRImage() {
-        const file = document.getElementById('ocrFile').files[0];
-        const preview = document.getElementById('ocrPreview');
-        if (!file) { preview.classList.add('hidden'); return; }
-        if (!file.type.startsWith('image/')) {
-            alert('Please select a valid image file.');
-            document.getElementById('ocrFile').value = '';
+    function showExcelStatus(message, type = 'info') {
+        const box = document.getElementById('excelStatus');
+        box.classList.remove('hidden', 'text-red-300', 'text-emerald-300', 'text-blue-300', 'bg-red-950/40', 'bg-emerald-950/40', 'bg-blue-950/40');
+        const styles = {
+            error: ['text-red-300', 'bg-red-950/40'],
+            success: ['text-emerald-300', 'bg-emerald-950/40'],
+            info: ['text-blue-300', 'bg-blue-950/40']
+        };
+        box.classList.add(...styles[type]);
+        box.textContent = message;
+    }
+
+    function normalizeExcelHeader(value) {
+        return String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
+
+    function findExcelColumn(headers, aliases) {
+        const normalized = headers.map(normalizeExcelHeader);
+        for (const alias of aliases) {
+            const index = normalized.indexOf(normalizeExcelHeader(alias));
+            if (index !== -1) return index;
+        }
+        return -1;
+    }
+
+    function numericExcelValue(value) {
+        if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+        const cleaned = String(value ?? '').replace(/,/g, '').replace(/[^\d.-]/g, '');
+        const parsed = Number(cleaned);
+        return cleaned && Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function readExcelBill(event) {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+
+        if (typeof XLSX === 'undefined') {
+            showExcelStatus('Excel reader load nahi hua. Internet check karke page reload karein.', 'error');
             return;
         }
-        if (file.size > 15 * 1024 * 1024) {
-            alert('Image size 15 MB se kam honi chahiye.');
-            document.getElementById('ocrFile').value = '';
+
+        const allowed = /\.(xlsx|xls|csv|ods)$/i.test(file.name);
+        if (!allowed) {
+            showExcelStatus('Please .xlsx, .xls, .csv ya .ods file select karein.', 'error');
+            event.target.value = '';
             return;
         }
-        if (preview.dataset.objectUrl) URL.revokeObjectURL(preview.dataset.objectUrl);
-        const url = URL.createObjectURL(file);
-        preview.dataset.objectUrl = url;
-        preview.src = url;
-        preview.classList.remove('hidden');
+        if (file.size > 20 * 1024 * 1024) {
+            showExcelStatus('File 20 MB se chhoti honi chahiye.', 'error');
+            event.target.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                if (!workbook.SheetNames.length) throw new Error('Workbook mein koi sheet nahi mili.');
+
+                excelWorkbookName = file.name;
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+
+                if (!matrix.length) throw new Error('Selected sheet khaali hai.');
+
+                // Find a likely header row in the first 10 rows.
+                let headerRowIndex = 0;
+                let bestScore = -1;
+                for (let r = 0; r < Math.min(matrix.length, 10); r++) {
+                    const row = matrix[r] || [];
+                    const joined = row.map(normalizeExcelHeader);
+                    const score = ['item','description','product','qty','quantity','rate','price','amount','total']
+                        .filter(key => joined.includes(key)).length;
+                    if (score > bestScore) { bestScore = score; headerRowIndex = r; }
+                }
+
+                let headers = (matrix[headerRowIndex] || []).map((v, i) => String(v || `Column ${i + 1}`).trim());
+                const dataRows = matrix.slice(headerRowIndex + 1).filter(row => row.some(v => String(v ?? '').trim() !== ''));
+
+                // If no recognizable headings exist, use common column order:
+                // Item | Qty | Rate | Amount.
+                const itemCol = findExcelColumn(headers, ['item','item name','description','product','product name','particulars','details','name']);
+                const qtyCol = findExcelColumn(headers, ['qty','quantity','pcs','units']);
+                const rateCol = findExcelColumn(headers, ['rate','price','unit price','unit rate']);
+                const amountCol = findExcelColumn(headers, ['amount','line amount','net amount','total','value']);
+                const hasHeaders = bestScore >= 1 && itemCol !== -1;
+
+                excelImportedRows = dataRows.map(row => {
+                    let item, qty, rate, amount;
+                    if (hasHeaders) {
+                        item = itemCol >= 0 ? row[itemCol] : '';
+                        qty = qtyCol >= 0 ? row[qtyCol] : '';
+                        rate = rateCol >= 0 ? row[rateCol] : '';
+                        amount = amountCol >= 0 ? row[amountCol] : '';
+                    } else {
+                        item = row[0] ?? '';
+                        qty = row[1] ?? '';
+                        rate = row[2] ?? '';
+                        amount = row[3] ?? '';
+                    }
+
+                    qty = qty === '' ? '' : numericExcelValue(qty);
+                    rate = rate === '' ? '' : numericExcelValue(rate);
+                    amount = amount === '' ? '' : numericExcelValue(amount);
+                    if (amount === '' && qty !== '' && rate !== '') amount = Number(qty) * Number(rate);
+
+                    return {
+                        item: String(item ?? '').trim(),
+                        qty,
+                        rate,
+                        amount
+                    };
+                }).filter(row => row.item || row.amount !== '' || row.qty !== '' || row.rate !== '');
+
+                if (!excelImportedRows.length) {
+                    throw new Error('Rows read nahi huin. Sheet mein data ya headings check karein.');
+                }
+
+                // Guess customer/supplier and date from workbook metadata only if available.
+                document.getElementById('excelCustomer').value = '';
+                document.getElementById('excelDate').value = '';
+                renderExcelPreview();
+                document.getElementById('excelBillFields').classList.remove('hidden');
+                document.getElementById('excelPreviewWrap').classList.remove('hidden');
+                document.getElementById('saveExcelBillBtn').disabled = false;
+
+                showExcelStatus(
+                    `${file.name} successfully read. Sheet: ${workbook.SheetNames[0]}. ${excelImportedRows.length} item row(s) imported. Please verify before saving.`,
+                    'success'
+                );
+            } catch (error) {
+                console.error('Excel import error:', error);
+                excelImportedRows = [];
+                document.getElementById('excelPreviewWrap').classList.add('hidden');
+                document.getElementById('excelBillFields').classList.add('hidden');
+                document.getElementById('saveExcelBillBtn').disabled = true;
+                showExcelStatus(error.message || 'Excel file read nahi ho saki.', 'error');
+            }
+        };
+        reader.onerror = () => showExcelStatus('File read error. Dobara try karein.', 'error');
+        reader.readAsArrayBuffer(file);
     }
 
-    function setOCRProgress(percent, message) {
-        document.getElementById('ocrProgress').classList.remove('hidden');
-        document.getElementById('ocrBar').style.width = percent + '%';
-        document.getElementById('ocrPercent').textContent = percent + '%';
-        document.getElementById('ocrStatus').textContent = message;
-    }
-
-    function loadImageFromFile(file) {
-        return new Promise((resolve, reject) => {
-            const url = URL.createObjectURL(file);
-            const image = new Image();
-            image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
-            image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image open nahi ho saki.')); };
-            image.src = url;
+    function renderExcelPreview() {
+        const body = document.getElementById('excelPreviewBody');
+        body.innerHTML = '';
+        excelImportedRows.forEach((item, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="p-1"><input data-field="item" class="w-full min-w-32 bg-slate-900 border border-slate-700 rounded p-2 text-white" aria-label="Item name"></td>
+                <td class="p-1"><input data-field="qty" type="number" min="0" step="any" class="w-20 bg-slate-900 border border-slate-700 rounded p-2 text-white" aria-label="Quantity"></td>
+                <td class="p-1"><input data-field="rate" type="number" min="0" step="any" class="w-24 bg-slate-900 border border-slate-700 rounded p-2 text-white" aria-label="Rate"></td>
+                <td class="p-1"><input data-field="amount" type="number" min="0" step="any" class="w-28 bg-slate-900 border border-slate-700 rounded p-2 text-white" aria-label="Amount"></td>
+                <td class="p-1"><button type="button" class="text-red-400 px-2 py-2" aria-label="Remove row">✕</button></td>`;
+            row.querySelector('[data-field="item"]').value = item.item;
+            row.querySelector('[data-field="qty"]').value = item.qty;
+            row.querySelector('[data-field="rate"]').value = item.rate;
+            row.querySelector('[data-field="amount"]').value = item.amount;
+            row.querySelectorAll('input').forEach(input => input.addEventListener('input', () => {
+                excelImportedRows[index][input.dataset.field] =
+                    input.dataset.field === 'item' ? input.value : (input.value === '' ? '' : Number(input.value));
+                if (input.dataset.field === 'qty' || input.dataset.field === 'rate') {
+                    const current = excelImportedRows[index];
+                    if (current.amount === '' && current.qty !== '' && current.rate !== '') {
+                        current.amount = Number(current.qty) * Number(current.rate);
+                        row.querySelector('[data-field="amount"]').value = current.amount;
+                    }
+                }
+                calculateExcelTotal();
+            }));
+            row.querySelector('button').addEventListener('click', () => {
+                excelImportedRows.splice(index, 1);
+                renderExcelPreview();
+            });
+            body.appendChild(row);
         });
+        document.getElementById('excelRowCount').textContent = `${excelImportedRows.length} rows`;
+        calculateExcelTotal();
     }
 
-    // Keep original detail in first pass; make a gentle contrast version for second pass.
-    function prepareOCRCanvas(image, strongContrast = false) {
-        const canvas = document.createElement('canvas');
-        const maxDimension = 2600;
-        const scale = Math.min(2, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
-        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-        const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const p = data.data;
-        let min = 255, max = 0;
-        const gray = new Uint8Array(canvas.width * canvas.height);
-
-        for (let i = 0, j = 0; i < p.length; i += 4, j++) {
-            const v = Math.round(0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]);
-            gray[j] = v;
-            min = Math.min(min, v);
-            max = Math.max(max, v);
-        }
-
-        const range = Math.max(1, max - min);
-        for (let i = 0, j = 0; i < p.length; i += 4, j++) {
-            let v = (gray[j] - min) * 255 / range;
-            if (strongContrast) v = Math.max(0, Math.min(255, (v - 128) * 1.22 + 128));
-            p[i] = p[i + 1] = p[i + 2] = v;
-            p[i + 3] = 255;
-        }
-        ctx.putImageData(data, 0, 0);
-        return canvas;
-    }
-
-    function normalizeOCRText(text) {
-        return String(text || '').replace(/\r/g, '\n').replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').trim();
-    }
-
-    function extractBillDate(text) {
-        const patterns = [
-            /\b(?:0?[1-9]|[12]\d|3[01])[\/.-](?:0?[1-9]|1[0-2])[\/.-](?:20)?\d{2}\b/,
-            /\b20\d{2}[\/.-](?:0?[1-9]|1[0-2])[\/.-](?:0?[1-9]|[12]\d|3[01])\b/
-        ];
-        for (const pattern of patterns) {
-            const match = text.match(pattern);
-            if (match) return match[0];
-        }
-        return '';
-    }
-
-    function extractShopName(text) {
-        const ignored = /\b(invoice|receipt|cash memo|date|time|phone|mobile|address|customer|bill no|invoice no)\b/i;
-        return normalizeOCRText(text).split('\n').map(x => x.trim()).find(x =>
-            /[A-Za-z]{3,}/.test(x) && !ignored.test(x) && x.length >= 3 && x.length <= 65
-        ) || '';
-    }
-
-    function addOCRRow(item = '', qty = '', rate = '', amount = '') {
-        const body = document.getElementById('ocrItems');
-        const id = ++ocrRowCounter;
-        const row = document.createElement('tr');
-        row.className = 'border-b border-slate-800';
-        row.dataset.rowId = id;
-        row.innerHTML = `
-            <td class="p-1"><input aria-label="Item name" class="ocr-item w-full min-w-36 bg-slate-900 border border-slate-700 rounded p-2 text-white" placeholder="Item name"></td>
-            <td class="p-1"><input aria-label="Quantity" type="number" min="0" step="any" class="ocr-qty w-20 bg-slate-900 border border-slate-700 rounded p-2 text-white" placeholder="1"></td>
-            <td class="p-1"><input aria-label="Rate" type="number" min="0" step="any" class="ocr-rate w-24 bg-slate-900 border border-slate-700 rounded p-2 text-white" placeholder="0"></td>
-            <td class="p-1"><input aria-label="Line amount" type="number" min="0" step="any" class="ocr-amount w-28 bg-slate-900 border border-slate-700 rounded p-2 text-white" placeholder="0"></td>
-            <td class="p-1"><button type="button" class="text-red-400 px-2 py-2" aria-label="Remove item" onclick="this.closest('tr').remove(); calculateOCRTotal();">✕</button></td>`;
-        body.appendChild(row);
-        row.querySelector('.ocr-item').value = item;
-        row.querySelector('.ocr-qty').value = qty;
-        row.querySelector('.ocr-rate').value = rate;
-        row.querySelector('.ocr-amount').value = amount;
-        row.querySelectorAll('input').forEach(input => input.addEventListener('input', calculateOCRTotal));
-        calculateOCRTotal();
-    }
-
-    function calculateOCRTotal() {
-        let total = 0;
-        document.querySelectorAll('#ocrItems tr').forEach(row => {
-            const amountInput = row.querySelector('.ocr-amount');
-            const qty = Number(row.querySelector('.ocr-qty').value);
-            const rate = Number(row.querySelector('.ocr-rate').value);
-            let amount = amountInput.value.trim() !== '' ? Number(amountInput.value) : (qty * rate);
-            if (!Number.isFinite(amount) || amount < 0) amount = 0;
-            total += amount;
-        });
-        document.getElementById('ocrGrandTotal').textContent = total.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    function calculateExcelTotal() {
+        const total = excelImportedRows.reduce((sum, row) => {
+            let amount = row.amount === '' ? Number(row.qty || 0) * Number(row.rate || 0) : Number(row.amount || 0);
+            return sum + (Number.isFinite(amount) ? amount : 0);
+        }, 0);
+        document.getElementById('excelGrandTotal').textContent =
+            total.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         return total;
     }
 
-    function extractNumericCandidates(line) {
-        // These substitutions are suggestions only; handwriting often needs human correction.
-        const normalized = line.replace(/[Oo]/g, '0').replace(/[Il|]/g, '1');
-        const matches = normalized.match(/(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?/g);
-        return matches ? matches.map(v => Number(v.replace(/,/g, ''))).filter(v => Number.isFinite(v) && v > 0 && v < 100000000) : [];
+    function addExcelItemRow() {
+        excelImportedRows.push({ item: '', qty: 1, rate: '', amount: '' });
+        document.getElementById('excelBillFields').classList.remove('hidden');
+        document.getElementById('excelPreviewWrap').classList.remove('hidden');
+        document.getElementById('saveExcelBillBtn').disabled = false;
+        renderExcelPreview();
     }
 
-    function useOCRSuggestions() {
-        const text = document.getElementById('ocrRaw').value;
-        if (!text.trim()) { alert('Pehle bill scan karein.'); return; }
-
-        const lines = normalizeOCRText(text).split('\n').map(v => v.trim()).filter(Boolean);
-        const suggestions = [];
-
-        for (const line of lines) {
-            const values = extractNumericCandidates(line);
-            if (!values.length) continue;
-            // Only propose a row when a line contains text plus at least one numeric value.
-            const words = line.replace(/[0-9,.$%/-]+/g, ' ').replace(/\s+/g, ' ').trim();
-            if (!words && values.length < 1) continue;
-            suggestions.push({
-                item: words.slice(0, 70),
-                qty: '',
-                rate: '',
-                amount: values[values.length - 1]
-            });
-        }
-
-        if (!suggestions.length) {
-            alert('OCR se item/amount suggestions nahi milin. Add Item Row par tap karke details manually enter karein.');
-            return;
-        }
-
-        document.getElementById('ocrItems').innerHTML = '';
-        ocrRowCounter = 0;
-        suggestions.slice(0, 40).forEach(row => addOCRRow(row.item, row.qty, row.rate, row.amount));
-        alert('OCR suggestions add ho gayi hain. Har item aur amount ko original bill se verify karein.');
-    }
-
-    async function runOCR() {
-        const file = document.getElementById('ocrFile').files[0];
-        const button = document.getElementById('scanBtn');
-        if (!file) { alert('Pehle bill ki photo select karein.'); return; }
-        if (!file.type.startsWith('image/')) { alert('Valid image select karein.'); return; }
-        if (file.size > 15 * 1024 * 1024) { alert('Image 15 MB se chhoti honi chahiye.'); return; }
-        if (typeof Tesseract === 'undefined') {
-            alert('OCR library load nahi hui. Internet check karke page reload karein.');
-            return;
-        }
-
-        button.disabled = true;
-        button.textContent = 'Scanning...';
-        let worker;
-
-        try {
-            setOCRProgress(5, 'Photo open ho rahi hai...');
-            const image = await loadImageFromFile(file);
-            setOCRProgress(12, 'Image enhance ho rahi hai...');
-            const normalCanvas = prepareOCRCanvas(image, false);
-            const contrastCanvas = prepareOCRCanvas(image, true);
-
-            setOCRProgress(18, 'OCR language model load ho raha hai...');
-            worker = await Tesseract.createWorker('eng', 1, {
-                logger: message => {
-                    if (message.status === 'recognizing text') {
-                        setOCRProgress(20 + Math.round(message.progress * 65), 'Bill text read ho raha hai...');
-                    }
-                }
-            });
-
-            await worker.setParameters({
-                preserve_interword_spaces: '1',
-                user_defined_dpi: '300',
-                tessedit_pageseg_mode: document.getElementById('ocrMode').value === 'handwritten' ? '11' : '6'
-            });
-
-            const first = await worker.recognize(normalCanvas);
-            setOCRProgress(55, 'Second image pass chal raha hai...');
-            const second = await worker.recognize(contrastCanvas);
-
-            const firstText = first.data.text || '';
-            const secondText = second.data.text || '';
-            const firstConfidence = Number(first.data.confidence || 0);
-            const secondConfidence = Number(second.data.confidence || 0);
-            const selected = secondConfidence > firstConfidence ? secondText : firstText;
-            const text = normalizeOCRText(selected);
-
-            if (!text) throw new Error('Text read nahi hua. Camera se seedhi, bright aur close photo lein.');
-
-            document.getElementById('ocrRaw').value = text;
-            document.getElementById('ocrDate').value = extractBillDate(text);
-            document.getElementById('ocrShop').value = extractShopName(text);
-
-            // Build editable suggestions. Never treat these as confirmed accounting data.
-            document.getElementById('ocrItems').innerHTML = '';
-            ocrRowCounter = 0;
-            useOCRSuggestions();
-
-            setOCRProgress(100, `Scan complete • confidence guide: ${Math.round(Math.max(firstConfidence, secondConfidence))}%`);
-            alert('Scan complete. Handwritten text mein mistakes ho sakti hain. Items aur amounts ko original bill se check karke hi Save karein.');
-        } catch (error) {
-            console.error('OCR error:', error);
-            setOCRProgress(0, 'Scan failed');
-            alert('Scan error: ' + (error.message || 'Unknown error') + '\nInternet connection check karein aur dobara try karein.');
-        } finally {
-            if (worker) {
-                try { await worker.terminate(); } catch (e) { console.warn(e); }
-            }
-            button.disabled = false;
-            button.textContent = 'Scan Bill';
-        }
-    }
-
-    function saveOCRBill() {
-        const rows = Array.from(document.querySelectorAll('#ocrItems tr'));
-        const items = rows.map(row => {
-            const item = row.querySelector('.ocr-item').value.trim();
-            const qty = row.querySelector('.ocr-qty').value;
-            const rate = row.querySelector('.ocr-rate').value;
-            const amountText = row.querySelector('.ocr-amount').value;
-            const amount = amountText !== '' ? Number(amountText) : Number(qty || 0) * Number(rate || 0);
-            return { item, qty, rate, amount: Number.isFinite(amount) ? amount : 0 };
+    function saveExcelBill() {
+        const items = excelImportedRows.map(row => {
+            const amount = row.amount === '' ? Number(row.qty || 0) * Number(row.rate || 0) : Number(row.amount || 0);
+            return {
+                item: String(row.item || '').trim(),
+                qty: row.qty,
+                rate: row.rate,
+                amount: Number.isFinite(amount) ? amount : 0
+            };
         }).filter(row => row.item || row.amount > 0);
 
         if (!items.length) {
-            alert('Kam az kam ek item ya amount enter karein.');
+            alert('Excel sheet mein kam az kam ek item ya amount hona chahiye.');
             return;
         }
 
         const total = items.reduce((sum, row) => sum + row.amount, 0);
-        const shop = document.getElementById('ocrShop').value.trim() || 'Scanned Receipt';
-        const date = document.getElementById('ocrDate').value.trim();
+        const customer = document.getElementById('excelCustomer').value.trim() || excelWorkbookName || 'Excel Imported Bill';
+        const date = document.getElementById('excelDate').value.trim();
         const details = items.map(row =>
-            `${row.item || 'Item'}${row.qty ? ' | Qty: ' + row.qty : ''}${row.rate ? ' | Rate: ' + row.rate : ''} | Amount: ${row.amount}`
+            `${row.item || 'Item'}${row.qty !== '' ? ' | Qty: ' + row.qty : ''}${row.rate !== '' ? ' | Rate: ' + row.rate : ''} | Amount: ${row.amount}`
         ).join('; ');
 
-        if (!confirm(`Save ${items.length} item(s), total Rs. ${total.toLocaleString('en-PK')}? Please verify against original bill.`)) return;
+        if (!confirm(`Save ${items.length} item(s) with total Rs. ${total.toLocaleString('en-PK')}?`)) return;
 
         const bills = getStore('bills');
         bills.push({
             id: Date.now(),
-            customer: shop,
-            details: `OCR Bill${date ? ' | Date: ' + date : ''} | ${details}`,
+            customer,
+            details: `Excel Import${date ? ' | Date: ' + date : ''} | ${details}`,
             total: String(Number(total.toFixed(2))),
             items,
-            rawText: document.getElementById('ocrRaw').value,
-            source: 'OCR'
+            source: 'Excel',
+            sourceFile: excelWorkbookName
         });
         setStore('bills', bills);
         loadBills();
-        alert('Bill Bills history mein save ho gaya.');
+        alert('Excel bill successfully Bills history mein save ho gaya.');
         switchTab('bills');
+    }
+
+    function downloadExcelTemplate(event) {
+        event.preventDefault();
+        if (typeof XLSX === 'undefined') {
+            alert('Excel library load nahi hui. Internet check karein.');
+            return;
+        }
+        const rows = [
+            ['Item', 'Qty', 'Rate', 'Amount'],
+            ['PVC Pipe 1/2 inch', 4, 250, 1000],
+            ['Elbow', 2, 80, 160],
+            ['Socket', 3, 50, 150]
+        ];
+        const worksheet = XLSX.utils.aoa_to_sheet(rows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Bill');
+        XLSX.writeFile(workbook, 'Anwar_Bill_Template.xlsx');
     }
 
     // ---------- STARTUP ----------
